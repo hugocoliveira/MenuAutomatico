@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Menu Automático</string>
+
+    <!-- Tela de Login -->
+    <string name="login_titulo">Menu Automático</string>
+    <string name="login_subtitulo">SAP Warehouse Management</string>
+    <string name="login_campo_usuario">Usuário SAP</string>
+    <string name="login_campo_senha">Senha</string>
+    <string name="login_botao_entrar">Entrar</string>
+    <string name="login_mostrar_senha">Mostrar senha</string>
+    <string name="login_ocultar_senha">Ocultar senha</string>
+    <string name="login_erro_campos_vazios">Informe usuário e senha para continuar.</string>
+
+    <!-- Tela de Menu -->
+    <string name="menu_abrir_submenu">Abrir submenu</string>
+    <string name="menu_lancar_app">Lançar aplicativo</string>
+    <string name="menu_voltar">Voltar ao menu anterior</string>
+
+    <!-- Diálogo de saída -->
+    <string name="saida_titulo">Sair do aplicativo?</string>
+    <string name="saida_mensagem">Deseja encerrar o Menu Automático?</string>
+    <string name="saida_confirmar">Sair</string>
+    <string name="saida_cancelar">Cancelar</string>
+</resources>

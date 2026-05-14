@@ -1,0 +1,142 @@
+{
+  "d": {
+    "results": [
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='GR00',Sequence='1')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='GR00',Sequence='1')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "GR00",
+        "Sequence": "1",
+        "Componente": "com.entrada.fornecimento",
+        "Type": "2",
+        "Transacao": "LM71",
+        "Text": "EM para o fornecimento",
+        "SText": "EM para fornmto."
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='GR00',Sequence='4')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='GR00',Sequence='4')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "GR00",
+        "Sequence": "4",
+        "Componente": "com.entrada.transporte",
+        "Type": "2",
+        "Transacao": "LM73",
+        "Text": "EM p/transporte",
+        "SText": "EM p/transporte"
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='INB00',Sequence='1')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='INB00',Sequence='1')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "INB00",
+        "Sequence": "1",
+        "Componente": "com.submenu.entrada",
+        "Type": "1",
+        "Transacao": "GR00",
+        "Text": "Entrada de mercadorias",
+        "SText": "Entrada mercadorias"
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='INB00',Sequence='2')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='INB00',Sequence='2')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "INB00",
+        "Sequence": "2",
+        "Componente": "com.submenu.descarregar",
+        "Type": "1",
+        "Transacao": "UNLD00",
+        "Text": "Descarregar",
+        "SText": "Descarg."
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='MAIN',Sequence='1')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='MAIN',Sequence='1')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "MAIN",
+        "Sequence": "1",
+        "Componente": "com.main.menu",
+        "Type": "1",
+        "Transacao": "INB00",
+        "Text": "Processo de entrada de mercadorias",
+        "SText": "ProcessEM"
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='MAIN',Sequence='2')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='MAIN',Sequence='2')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "MAIN",
+        "Sequence": "2",
+        "Componente": "com.main.menu2",
+        "Type": "1",
+        "Transacao": "OUT00",
+        "Text": "Processo de saída de mercadorias",
+        "SText": "ProcessSM"
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='UNLD00',Sequence='1')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='UNLD00',Sequence='1')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "UNLD00",
+        "Sequence": "1",
+        "Componente": "com.descarregar.transporte",
+        "Type": "2",
+        "Transacao": "LM33",
+        "Text": "Descarregar para transporte",
+        "SText": "Descarga p/transp."
+      },
+      {
+        "__metadata": {
+          "id": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='UNLD00',Sequence='2')",
+          "uri": "http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp(Lgnum='001',Mmenu='UNLD00',Sequence='2')",
+          "type": "cds_zlit_sd_menu_app.MenuAppType"
+        },
+        "Delete_mc": true,
+        "Update_mc": true,
+        "Lgnum": "001",
+        "Mmenu": "UNLD00",
+        "Sequence": "2",
+        "Componente": "com.descarregar.fornecimento",
+        "Type": "2",
+        "Transacao": "LM34",
+        "Text": "Descarregar para o fornecimento",
+        "SText": "Descarr.forn."
+      }
+    ]
+  }
+}
