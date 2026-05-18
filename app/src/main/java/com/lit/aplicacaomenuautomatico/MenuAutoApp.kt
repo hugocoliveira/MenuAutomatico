@@ -3,6 +3,7 @@ package com.lit.aplicacaomenuautomatico
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.lit.aplicacaomenuautomatico.BuildConfig
 import com.updater.lib.AppUpdateChecker
 import com.updater.lib.UpdateConfig
 import dagger.hilt.android.HiltAndroidApp
@@ -42,7 +43,7 @@ class MenuAutoApp : Application(), Configuration.Provider {
                 githubOwner = "hugocoliveira",
                 githubRepo  = "MenuAutomatico",
                 branch      = "main_MenuAutomatico",
-                githubToken = "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"
+                githubToken = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() }
             )
         )
     }

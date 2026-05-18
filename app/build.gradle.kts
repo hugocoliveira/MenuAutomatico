@@ -13,6 +13,12 @@ android {
         }
     }
 
+    // Lê o token do GitHub de local.properties (não commitado no git)
+    val localProps = java.util.Properties().apply {
+        val f = rootProject.file("local.properties")
+        if (f.exists()) load(f.inputStream())
+    }
+
     defaultConfig {
         applicationId = "com.lit.aplicacaomenuautomatico"
         minSdk = 24
@@ -22,6 +28,7 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        buildConfigField("String", "GITHUB_TOKEN", "\"${localProps.getProperty("github.token", "")}\"")
     }
 
     buildTypes {
@@ -41,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 
