@@ -3,6 +3,8 @@ package com.lit.aplicacaomenuautomatico
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.updater.lib.AppUpdateChecker
+import com.updater.lib.UpdateConfig
 import dagger.hilt.android.HiltAndroidApp
 import javax.inject.Inject
 
@@ -15,6 +17,9 @@ import javax.inject.Inject
  * com o [HiltWorkerFactory], permitindo que Workers usem @HiltWorker e recebam
  * dependências via injeção. Sem isso, o WorkManager iniciaria antes do Hilt
  * e a injeção nos Workers falharia silenciosamente.
+ *
+ * Também inicializa o sistema de atualização automática via GitHub (OTA),
+ * que verifica periodicamente se há um APK mais novo disponível no repositório.
  */
 @HiltAndroidApp
 class MenuAutoApp : Application(), Configuration.Provider {
@@ -25,6 +30,21 @@ class MenuAutoApp : Application(), Configuration.Provider {
      */
     @Inject
     lateinit var workerFactory: HiltWorkerFactory
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Inicia o verificador periódico de atualizações OTA via GitHub Releases.
+        // Compara o versionCode local com o versionCode em version.json no repositório.
+        AppUpdateChecker.init(
+            context = this,
+            config = UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo  = "MenuAutomatico",
+                githubToken = "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"
+            )
+        )
+    }
 
     /**
      * Configuração do WorkManager usando o HiltWorkerFactory.

@@ -24,4 +24,8 @@ dependencyResolutionManagement {
 
 rootProject.name = "aplicacaoMenuAutomatico"
 include(":app")
+
+include(":updater-lib")
+project(":updater-lib").projectDir = File("updater-lib")
+
  
