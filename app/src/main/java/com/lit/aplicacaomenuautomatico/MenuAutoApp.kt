@@ -41,7 +41,8 @@ class MenuAutoApp : Application(), Configuration.Provider {
             config = UpdateConfig(
                 githubOwner = "hugocoliveira",
                 githubRepo  = "MenuAutomatico",
-                githubToken = "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"
+                branch      = "main_MenuAutomatico",
+                githubToken = "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"
             )
         )
     }
