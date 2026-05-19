@@ -1,6 +1,7 @@
 package com.updater.lib
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Base64
 import android.util.Log
@@ -67,13 +68,26 @@ object AppUpdateChecker {
         }
     }
 
-    fun checkForUpdate(): UpdateInfo? {
-        return try {
-            val json = fetchVersionJson() ?: return null
-            val remoteVersionCode = json.getLong("versionCode")
-            val currentVersionCode = getCurrentVersionCode()
+    /**
+     * Verifica atualização do próprio app usando a config inicializada via [init].
+     * Chamado pelo [UpdateCheckWorker] no ciclo periódico e no launch.
+     */
+    fun checkForUpdate(): UpdateInfo? = checkForUpdate(config, appContext)
 
-            Log.d(TAG, "Versão local: $currentVersionCode | Remota: $remoteVersionCode")
+    /**
+     * Verifica atualização para qualquer app usando uma config explícita.
+     * Permite que o MenuAutomatico verifique os 3 apps na tela de login.
+     *
+     * @param config Configuração do app a verificar (packageId define qual versão local comparar)
+     * @param context Context para acessar PackageManager
+     */
+    fun checkForUpdate(config: UpdateConfig, context: Context): UpdateInfo? {
+        return try {
+            val json = fetchVersionJsonFor(config) ?: return null
+            val remoteVersionCode = json.getLong("versionCode")
+            val currentVersionCode = getInstalledVersionCode(config.packageId, context)
+
+            Log.d(TAG, "[${config.githubRepo}] Local: $currentVersionCode | Remoto: $remoteVersionCode")
 
             if (remoteVersionCode > currentVersionCode) {
                 UpdateInfo(
@@ -86,13 +100,32 @@ object AppUpdateChecker {
                 null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erro ao verificar atualização", e)
+            Log.e(TAG, "Erro ao verificar atualização de ${config.githubRepo}", e)
             null
         }
     }
 
-    private fun fetchVersionJson(): JSONObject? {
-        val url = URL(config.versionJsonUrl)
+    /**
+     * Retorna o versionCode do app instalado.
+     * Se [packageId] for null, usa o packageName do processo atual.
+     * Se o app não estiver instalado, retorna 0 (força atualização).
+     */
+    private fun getInstalledVersionCode(packageId: String?, context: Context): Long {
+        val pkg = packageId ?: context.packageName
+        return try {
+            val info = context.packageManager.getPackageInfo(pkg, 0)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) info.longVersionCode
+            else @Suppress("DEPRECATION") info.versionCode.toLong()
+        } catch (e: PackageManager.NameNotFoundException) {
+            Log.w(TAG, "App $pkg não instalado — versionCode = 0")
+            0L
+        }
+    }
+
+    private fun fetchVersionJson(): JSONObject? = fetchVersionJsonFor(config)
+
+    private fun fetchVersionJsonFor(cfg: UpdateConfig): JSONObject? {
+        val url = URL(cfg.versionJsonUrl)
         val connection = url.openConnection() as HttpURLConnection
 
         try {
@@ -103,19 +136,19 @@ object AppUpdateChecker {
             connection.setRequestProperty("Cache-Control", "no-cache")
             connection.useCaches = false
 
-            config.githubToken?.let { token ->
+            cfg.githubToken?.let { token ->
                 connection.setRequestProperty("Authorization", "Bearer $token")
                 connection.setRequestProperty("Accept", "application/vnd.github.v3+json")
             }
 
             if (connection.responseCode != HttpURLConnection.HTTP_OK) {
-                Log.e(TAG, "HTTP ${connection.responseCode} ao buscar version.json")
+                Log.e(TAG, "HTTP ${connection.responseCode} ao buscar version.json de ${cfg.githubRepo}")
                 return null
             }
 
             val responseBody = connection.inputStream.bufferedReader().readText()
 
-            return if (config.githubToken != null) {
+            return if (cfg.githubToken != null) {
                 val apiResponse = JSONObject(responseBody)
                 val content = apiResponse.getString("content").replace("\n", "")
                 val decoded = String(Base64.decode(content, Base64.DEFAULT))

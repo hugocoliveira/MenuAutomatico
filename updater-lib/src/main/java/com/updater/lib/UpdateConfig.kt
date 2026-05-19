@@ -5,7 +5,9 @@ data class UpdateConfig(
     val githubRepo: String,
     val branch: String = "main",
     val githubToken: String? = null,
-    val checkIntervalHours: Long = 6
+    val checkIntervalHours: Long = 6,
+    /** Package ID do app a verificar. Null = usa o packageName do próprio processo. */
+    val packageId: String? = null
 ) {
     val versionJsonUrl: String
         get() = if (githubToken != null) {

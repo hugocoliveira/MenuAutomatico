@@ -1,5 +1,6 @@
 package com.lit.aplicacaomenuautomatico.ui.login
 
+import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -7,24 +8,29 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warehouse
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +47,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
@@ -76,24 +83,39 @@ fun LoginScreen(
     // Coleta o estado reativo do ViewModel respeitando o ciclo de vida
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Estado local dos campos de texto — gerenciados na UI (não no ViewModel)
     var usuario by remember { mutableStateOf("") }
     var senha by remember { mutableStateOf("") }
     var senhaVisivel by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
 
-    // Navega para o Menu quando o login for bem-sucedido.
-    // Fecha o teclado explicitamente antes de navegar para evitar que a animação
-    // de fechamento do IME fique pendente na tela de Menu, o que causaria o
-    // primeiro toque em Voltar ser consumido pelo sistema para fechar o teclado.
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Sucesso) {
             keyboardController?.hide()
             focusManager.clearFocus()
             onLoginSucesso()
         }
+    }
+
+    // Diálogo de atualização obrigatória — bloqueia acesso ao menu
+    if (uiState is LoginUiState.AtualizacaoObrigatoria) {
+        val atualizacoes = (uiState as LoginUiState.AtualizacaoObrigatoria).atualizacoes
+        DialogAtualizacaoObrigatoria(
+            atualizacoes = atualizacoes,
+            onAtualizarClick = {
+                atualizacoes.forEach { resultado ->
+                    val intent = Intent("com.updater.lib.DOWNLOAD_APK").apply {
+                        setPackage(context.packageName)
+                        putExtra("apk_url", resultado.updateInfo.apkUrl)
+                        putExtra("version_name", resultado.updateInfo.versionName)
+                        putExtra("version_code", resultado.updateInfo.versionCode)
+                    }
+                    context.sendBroadcast(intent)
+                }
+            }
+        )
     }
 
     // Fundo com gradiente suave de Surface até PrimaryContainer para identidade visual
@@ -173,7 +195,7 @@ fun LoginScreen(
                     onNext = { focusManager.moveFocus(FocusDirection.Down) }
                 ),
                 singleLine = true,
-                enabled = uiState !is LoginUiState.Carregando,
+                enabled = uiState is LoginUiState.Ocioso || uiState is LoginUiState.Erro,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -225,7 +247,7 @@ fun LoginScreen(
                     }
                 ),
                 singleLine = true,
-                enabled = uiState !is LoginUiState.Carregando,
+                enabled = uiState is LoginUiState.Ocioso || uiState is LoginUiState.Erro,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -255,11 +277,20 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botão de login ou indicador de carregamento
-            if (uiState is LoginUiState.Carregando) {
+            // Indicador de carregamento (autenticando ou verificando atualizações)
+            if (uiState is LoginUiState.Carregando || uiState is LoginUiState.VerificandoAtualizacoes) {
                 CircularProgressIndicator(
                     color = Primary,
                     modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = if (uiState is LoginUiState.VerificandoAtualizacoes)
+                        "Verificando atualizações..."
+                    else
+                        "Autenticando...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnSurfaceVariant
                 )
             } else {
                 Button(
@@ -285,4 +316,108 @@ fun LoginScreen(
             }
         }
     }
+}
+
+/**
+ * Diálogo obrigatório exibido quando um ou mais apps têm atualização disponível.
+ * Não possui botão de cancelar — o usuário deve instalar antes de acessar o menu.
+ *
+ * @param atualizacoes Lista de apps com atualização pendente
+ * @param onAtualizarClick Callback acionado ao pressionar "Atualizar" — inicia os downloads
+ */
+@Composable
+private fun DialogAtualizacaoObrigatoria(
+    atualizacoes: List<AppUpdateResult>,
+    onAtualizarClick: () -> Unit
+) {
+    var downloadIniciado by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = { /* não permite fechar — atualização obrigatória */ },
+        icon = {
+            Icon(
+                imageVector = Icons.Default.SystemUpdate,
+                contentDescription = null,
+                tint = Primary,
+                modifier = Modifier.size(32.dp)
+            )
+        },
+        title = {
+            Text(
+                text = "Atualização obrigatória",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Primary
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Os aplicativos abaixo precisam ser atualizados antes de continuar:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = OnSurface
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                atualizacoes.forEachIndexed { index, resultado ->
+                    if (index > 0) {
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.SystemUpdate,
+                            contentDescription = null,
+                            tint = Primary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                text = resultado.nomeApp,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = OnSurface
+                            )
+                            Text(
+                                text = "Versão ${resultado.updateInfo.versionName} disponível",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = OnSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
+                if (downloadIniciado) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Download iniciado. Instale os apps e faça login novamente.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Primary,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (!downloadIniciado) {
+                        downloadIniciado = true
+                        onAtualizarClick()
+                    }
+                },
+                enabled = !downloadIniciado,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = if (downloadIniciado) "Aguardando instalação..." else "Atualizar",
+                    color = androidx.compose.ui.graphics.Color.White
+                )
+            }
+        }
+    )
 }

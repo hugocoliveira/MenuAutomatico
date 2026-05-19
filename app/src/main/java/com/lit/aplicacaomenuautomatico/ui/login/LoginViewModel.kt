@@ -8,17 +8,34 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.lit.aplicacaomenuautomatico.BuildConfig
 import com.lit.aplicacaomenuautomatico.data.repository.MenuRepository
 import com.lit.aplicacaomenuautomatico.worker.SyncWorker
+import com.updater.lib.AppUpdateChecker
+import com.updater.lib.UpdateConfig
+import com.updater.lib.UpdateInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+
+/**
+ * Resultado de verificação de atualização para um app específico.
+ *
+ * @param nomeApp Nome amigável exibido no diálogo (ex.: "Entrada Fornecimento")
+ * @param updateInfo Informações da versão disponível no GitHub
+ */
+data class AppUpdateResult(
+    val nomeApp: String,
+    val updateInfo: UpdateInfo
+)
 
 /**
  * Estados possíveis da tela de login.
@@ -28,23 +45,39 @@ sealed class LoginUiState {
     /** Estado inicial — formulário vazio, sem ação em andamento */
     object Ocioso : LoginUiState()
 
-    /** Autenticando — exibe indicador de carregamento e desabilita o botão */
+    /** Autenticando contra o SAP — exibe indicador de carregamento */
     object Carregando : LoginUiState()
 
-    /** Login bem-sucedido — a UI deve navegar para a tela de menu */
+    /**
+     * Login SAP concluído — verificando atualizações dos 3 apps antes de liberar o menu.
+     * Exibe indicador de carregamento com texto "Verificando atualizações..."
+     */
+    object VerificandoAtualizacoes : LoginUiState()
+
+    /**
+     * Um ou mais apps têm atualização obrigatória disponível.
+     * O usuário não pode prosseguir para o menu sem instalar.
+     *
+     * @param atualizacoes Lista de apps com atualização pendente
+     */
+    data class AtualizacaoObrigatoria(val atualizacoes: List<AppUpdateResult>) : LoginUiState()
+
+    /** Tudo OK — a UI deve navegar para a tela de menu */
     object Sucesso : LoginUiState()
 
     /**
      * Falha na autenticação — exibe mensagem de erro ao usuário.
-     * @param mensagem Descrição amigável do erro (ex.: "Usuário ou senha inválidos")
+     * @param mensagem Descrição amigável do erro
      */
     data class Erro(val mensagem: String) : LoginUiState()
 }
 
 /**
  * ViewModel da tela de login.
- * Gerencia o estado da UI e orquestra a autenticação com o SAP via repositório.
- * Após login bem-sucedido, salva as credenciais e agenda a sincronização periódica.
+ * Gerencia o estado da UI e orquestra:
+ *  1. Autenticação com o SAP via repositório
+ *  2. Verificação de atualizações dos 3 apps após login bem-sucedido
+ *  3. Bloqueio obrigatório para instalação de atualizações antes de acessar o menu
  */
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -58,13 +91,12 @@ class LoginViewModel @Inject constructor(
 
     /**
      * Inicia o processo de login com as credenciais informadas.
-     * Executado em Dispatchers.IO para não bloquear a Main thread durante a chamada de rede.
+     * Após autenticação bem-sucedida, verifica atualizações dos 3 apps antes de navegar ao menu.
      *
      * @param username Usuário SAP digitado pelo operador
      * @param password Senha SAP digitada pelo operador
      */
     fun login(username: String, password: String) {
-        // Valida campos antes de fazer a chamada de rede
         if (username.isBlank() || password.isBlank()) {
             _uiState.value = LoginUiState.Erro("Informe usuário e senha para continuar.")
             return
@@ -75,17 +107,69 @@ class LoginViewModel @Inject constructor(
 
             menuRepository.sincronizarDoServidor(username, password).fold(
                 onSuccess = {
-                    // Salva credenciais de forma segura para uso pelo WorkManager
                     menuRepository.salvarCredenciais(username, password)
-                    // Agenda sincronização periódica em background (60 minutos)
                     agendarSyncPeriodico()
-                    _uiState.value = LoginUiState.Sucesso
+                    // Após login OK, verifica atualizações antes de liberar o menu
+                    verificarAtualizacoesDeTodosApps()
                 },
                 onFailure = { erro ->
-                    // Traduz exceções HTTP para mensagens amigáveis ao operador
                     _uiState.value = LoginUiState.Erro(traduzirErro(erro))
                 }
             )
+        }
+    }
+
+    /**
+     * Verifica em paralelo se há atualizações disponíveis para os 3 apps.
+     * Se encontrar alguma, emite [LoginUiState.AtualizacaoObrigatoria].
+     * Se tudo estiver atualizado, emite [LoginUiState.Sucesso] para navegar ao menu.
+     */
+    private suspend fun verificarAtualizacoesDeTodosApps() {
+        _uiState.value = LoginUiState.VerificandoAtualizacoes
+
+        val token = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() }
+
+        // Configuração de cada app — packageId permite checar a versão instalada no dispositivo
+        val appsParaVerificar = listOf(
+            "Menu Automático" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo = "MenuAutomatico",
+                branch = "main_MenuAutomatico",
+                githubToken = token,
+                packageId = "com.lit.aplicacaomenuautomatico"
+            ),
+            "Entrada Fornecimento" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo = "EntradaFornecimento",
+                branch = "main",
+                githubToken = token,
+                packageId = "com.entrada.fornecimento"
+            ),
+            "Entrada Transporte" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo = "EntradaTransporte",
+                branch = "master",
+                githubToken = token,
+                packageId = "com.entrada.transporte"
+            )
+        )
+
+        // Verificações em paralelo para reduzir o tempo de espera
+        val atualizacoes = appsParaVerificar
+            .map { (nome, config) ->
+                viewModelScope.async(Dispatchers.IO) {
+                    AppUpdateChecker.checkForUpdate(config, context)?.let { info ->
+                        AppUpdateResult(nome, info)
+                    }
+                }
+            }
+            .awaitAll()
+            .filterNotNull()
+
+        _uiState.value = if (atualizacoes.isEmpty()) {
+            LoginUiState.Sucesso
+        } else {
+            LoginUiState.AtualizacaoObrigatoria(atualizacoes)
         }
     }
 
@@ -99,9 +183,6 @@ class LoginViewModel @Inject constructor(
 
     /**
      * Agenda o WorkManager para sincronizar os dados do SAP a cada 60 minutos.
-     * Usa [ExistingPeriodicWorkPolicy.KEEP] para não recriar o trabalho se já estiver agendado
-     * (ex.: se o usuário fizer login novamente com outro usuário).
-     * A constraint de rede garante que o Worker só execute com internet disponível.
      */
     private fun agendarSyncPeriodico() {
         val constraints = Constraints.Builder()
@@ -121,9 +202,6 @@ class LoginViewModel @Inject constructor(
 
     /**
      * Converte exceções de rede e HTTP em mensagens compreensíveis para o operador.
-     * Evita expor stack traces ou mensagens técnicas na UI.
-     *
-     * @param erro Exceção capturada durante a autenticação
      */
     private fun traduzirErro(erro: Throwable): String {
         val mensagem = erro.message ?: ""
