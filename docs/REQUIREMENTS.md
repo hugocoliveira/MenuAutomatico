@@ -170,7 +170,7 @@ Tabela `sync_log`:
 - A lista de menus deve ser renderizada em menos de 1 segundo após o carregamento dos dados do SQLite.
 
 ### RNF-04 — Compatibilidade
-- Android mínimo: API 21 (Android 5.0).
+- Android mínimo: API 24 (Android 7.0).
 - Suporte a telas de tamanho mdpi a xxxhdpi.
 
 ---
@@ -207,8 +207,20 @@ GET http://vm77.4hub.cloud:57700/sap/opu/odata/sap/zlit_menu_app_ui/MenuApp?sap-
 | CA-12 | No segundo acesso sem rede, o app exibe o menu do SQLite sem pedir login. |
 | CA-13 | A cada 60 minutos com rede disponível, o SQLite é atualizado em background sem notificação ao usuário. |
 | CA-14 | Cada sincronização (com sucesso ou falha) gera um registro na tabela `sync_log` com data, hora, status e quantidade de registros atualizados. |
+| CA-15 | Após login bem-sucedido, o spinner "Verificando atualizações..." aparece antes do menu. |
+| CA-16 | Se algum app tiver update pendente, o diálogo obrigatório bloqueia o acesso ao menu. |
+| CA-17 | Ao pressionar "Atualizar" no diálogo, o download do APK é iniciado automaticamente. |
+| CA-18 | A tela de login exibe a versão atual do app no rodapé (`LIT Solutions • v1.1`). |
 
----
+### RF-11 — Atualização automática OTA via GitHub
+
+- Após login bem-sucedido, o app deve verificar se há atualizações disponíveis para os 3 aplicativos (`MenuAutomatico`, `EntradaFornecimento`, `EntradaTransporte`) antes de exibir o menu.
+- Durante a verificação, exibir indicador de carregamento com o texto "Verificando atualizações...".
+- A verificação é feita consultando o arquivo `version.json` no repositório GitHub de cada app e comparando o `versionCode` remoto com o instalado no dispositivo.
+- Se nenhum app precisar de atualização, prosseguir normalmente para o menu.
+- Se um ou mais apps precisarem de atualização, exibir um **diálogo obrigatório** listando os apps e versões disponíveis, com botão "Atualizar". O operador não pode acessar o menu enquanto houver atualização pendente.
+- Ao pressionar "Atualizar", iniciar o download do APK via `DownloadManager` e abrir o instalador do sistema.
+- O app também verifica atualizações periodicamente em background a cada 6 horas (WorkManager), notificando o usuário via notificação do sistema quando houver nova versão disponível.
 
 ---
 

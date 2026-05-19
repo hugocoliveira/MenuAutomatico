@@ -109,6 +109,24 @@ aplicacaoMenuAutomatico/
             └── worker/                     SyncWorker (background)
 ```
 
+O projeto também inclui o módulo **`:updater-lib`** na raiz:
+
+```
+aplicacaoMenuAutomatico/
+├── updater-lib/                        Módulo de atualização OTA
+│   ├── build.gradle.kts
+│   └── src/main/java/com/updater/lib/
+│       ├── AppUpdateChecker.kt         Lógica de verificação + agendamento WorkManager
+│       ├── UpdateConfig.kt             Configuração (repo, branch, token, packageId)
+│       ├── UpdateCheckWorker.kt        Worker periódico (a cada 6h)
+│       ├── UpdateNotifier.kt           Notificação de atualização disponível
+│       └── ApkDownloadReceiver.kt      Download e instalação do APK via DownloadManager
+├── version.json                        Versão atual publicada (lido pelo OTA dos outros apps)
+└── docs/
+    ├── COMO_PUBLICAR_ATUALIZACAO.md    Guia passo a passo para publicar uma nova versão
+    └── ...
+```
+
 ### Padrão de arquitetura
 
 **Clean Architecture simplificada em três camadas**:
@@ -134,11 +152,13 @@ aplicacaoMenuAutomatico/
 │ 1. Sistema lança MenuAutoApp (Application)                      │
 │    @HiltAndroidApp gera o componente Hilt                       │
 │    Configuration.Provider configura WorkManager com Hilt        │
+│    AppUpdateChecker.init() agenda verificação OTA periódica     │
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │ 2. MainActivity.onCreate                                         │
+│    Solicita POST_NOTIFICATIONS (Android 13+)                    │
 │    Hilt injeta MenuRepository                                   │
 │    Compose monta AplicacaoMenuAutomaticoTheme                   │
 └─────────────────────────────────────────────────────────────────┘
@@ -159,7 +179,9 @@ aplicacaoMenuAutomatico/
 │ 4. NavGraph cria a tela inicial                                 │
 │    Login: digita credenciais → ViewModel chama OData →          │
 │           sucesso salva credenciais e agenda WorkManager →      │
-│           navega pro Menu                                        │
+│           verifica atualizações dos 3 apps em paralelo →        │
+│           se houver update: diálogo obrigatório                 │
+│           se tudo OK: navega pro Menu                           │
 │    Menu:  ViewModel.init carrega "MAIN" do SQLite via Flow      │
 │           usuário toca item → submenu (Type=1) ou Intent (Type=2)│
 └─────────────────────────────────────────────────────────────────┘
@@ -353,17 +375,19 @@ Composable da tela de login. Stateless — só recebe `viewModel` e o callback `
 
 **Componentes visuais**:
 - Fundo com `Brush.verticalGradient(Surface → PrimaryContainer)`.
-- Ícone `Icons.Default.Warehouse` (72dp) — *é aqui que se troca a "imagem da tela principal"*; veja seção 14.
+- Logo da empresa: `Image(painterResource(R.drawable.lit))` (180dp) — veja seção 14.1 para trocar.
 - Título "Menu Automático" + subtítulo "SAP Warehouse Management".
 - 2 `OutlinedTextField`: usuário e senha.
 - Senha com `PasswordVisualTransformation` e botão de olho (`Visibility`/`VisibilityOff`).
 - Mensagem de erro animada com `AnimatedVisibility(fadeIn/fadeOut)`.
-- Botão "Entrar" 52dp, ou `CircularProgressIndicator` durante loading.
-- Footer "LIT Solutions" no `Alignment.BottomCenter`.
+- `CircularProgressIndicator` durante `Carregando` (exibe "Autenticando...") e `VerificandoAtualizacoes` (exibe "Verificando atualizações...").
+- Botão "Entrar" 52dp nos estados `Ocioso` e `Erro`.
+- Footer `"LIT Solutions  •  v{VERSION_NAME}"` no `Alignment.BottomCenter`.
+- `DialogAtualizacaoObrigatoria` — diálogo modal sem opção de fechar, exibido no estado `AtualizacaoObrigatoria`.
 
 **Estado local** (em `remember`): apenas os 3 campos `usuario`, `senha`, `senhaVisivel`. Resto fica no ViewModel.
 
-**Detalhe importante** sobre fechar teclado antes de navegar (linhas 91–97): se o IME estiver aberto na transição, o primeiro toque em "Voltar" no Menu seria consumido para fechar o teclado, e não pelo `OnBackPressedCallback`. Por isso `keyboardController?.hide()` + `focusManager.clearFocus()` antes de `onLoginSucesso()`.
+**Detalhe importante** sobre fechar teclado antes de navegar: se o IME estiver aberto na transição, o primeiro toque em "Voltar" no Menu seria consumido para fechar o teclado, e não pelo `OnBackPressedCallback`. Por isso `keyboardController?.hide()` + `focusManager.clearFocus()` antes de `onLoginSucesso()`.
 
 #### `LoginViewModel.kt`
 
@@ -371,16 +395,28 @@ Composable da tela de login. Stateless — só recebe `viewModel` e o callback `
 | Estado | Significado |
 |---|---|
 | `Ocioso` | Estado inicial, sem ação. |
-| `Carregando` | Autenticando — exibe loader, desabilita campos. |
-| `Sucesso` | UI deve navegar para o Menu. |
+| `Carregando` | Autenticando contra o SAP — exibe loader, desabilita campos. |
+| `VerificandoAtualizacoes` | Login SAP OK, verificando atualizações dos 3 apps. |
+| `AtualizacaoObrigatoria(atualizacoes)` | Um ou mais apps têm update — bloqueia acesso ao menu. |
+| `Sucesso` | Tudo OK — UI navega para o Menu. |
 | `Erro(mensagem)` | Exibe a mensagem ao usuário. |
+
+`data class AppUpdateResult(nomeApp, updateInfo)` — resultado de verificação de um app específico.
 
 | Método | Descrição |
 |---|---|
-| `login(username, password)` | Valida que campos não estão vazios, dispara `sincronizarDoServidor` em `Dispatchers.IO`. Em sucesso: `salvarCredenciais()` + `agendarSyncPeriodico()` + estado `Sucesso`. Em falha: estado `Erro(traduzirErro(e))`. |
-| `limparErro()` | Volta para `Ocioso`. Chamado quando o usuário começa a digitar de novo. |
-| `agendarSyncPeriodico()` privada | Cria um `PeriodicWorkRequest<SyncWorker>` de 60 minutos com `NetworkType.CONNECTED`. Usa `enqueueUniquePeriodicWork("sync_menu_automatico", KEEP, ...)` — **KEEP** para não recriar se já existe (importante: trocar para `REPLACE` se algum dia o intervalo precisar mudar dinamicamente). |
-| `traduzirErro(throwable)` privada | Converte erros HTTP/IO em mensagens amigáveis. Trata `401`, falhas de DNS/timeout/connect, e fallback genérico. |
+| `login(username, password)` | Valida campos, dispara `sincronizarDoServidor` em `Dispatchers.IO`. Em sucesso: `salvarCredenciais()` + `agendarSyncPeriodico()` + chama `verificarAtualizacoesDeTodosApps()`. Em falha: estado `Erro`. |
+| `verificarAtualizacoesDeTodosApps()` privada suspend | Emite `VerificandoAtualizacoes`, verifica os 3 apps em paralelo (`async/awaitAll`), emite `AtualizacaoObrigatoria` se houver updates ou `Sucesso` se tudo estiver na última versão. |
+| `limparErro()` | Volta para `Ocioso`. |
+| `agendarSyncPeriodico()` privada | `PeriodicWorkRequest<SyncWorker>` de 60 min com `KEEP`. |
+| `traduzirErro(throwable)` privada | Converte erros HTTP/IO em mensagens amigáveis. |
+
+**Configuração dos 3 apps verificados** (em `verificarAtualizacoesDeTodosApps`):
+| App | Repo | Branch | Package ID |
+|---|---|---|---|
+| Menu Automático | `MenuAutomatico` | `main_MenuAutomatico` | `com.lit.aplicacaomenuautomatico` |
+| Entrada Fornecimento | `EntradaFornecimento` | `main` | `com.entrada.fornecimento` |
+| Entrada Transporte | `EntradaTransporte` | `master` | `com.entrada.transporte` |
 
 ### 8.3. `ui/menu/`
 
@@ -431,7 +467,7 @@ Scaffold
 | `init` | Chama `carregarMenu("MAIN")`. |
 | `carregarMenu(mmenu)` | Cancela `jobColeta`, marca `carregando=true`, abre nova coleta de `repository.getItensPorMenu(mmenu)`. |
 | `navegarParaSubmenu(item)` | Empilha o título atual em `backStackMenus`, chama `carregarMenu(item.transacao)`. |
-| `lancarAppExterno(context, item)` | `packageManager.getLaunchIntentForPackage(item.componente)`. Se null → estado de erro. Senão: `putExtra("transacao", item.transacao)` + `FLAG_ACTIVITY_NEW_TASK` + `startActivity`. |
+| `lancarAppExterno(context, item)` | Constrói `Intent` explícita via `ComponentName(item.componente, "${item.componente}.MainActivity")`. Adiciona extras `"transacao"` e `"origem"`. Captura `ActivityNotFoundException` para mostrar Snackbar de erro. |
 | `voltarMenuAnterior(): Boolean` | Desempilha e carrega. Retorna `false` se a pilha já estava vazia (sinal para mostrar diálogo de saída). |
 | `mostrarDialogSaida` / `ocultarDialogSaida` | Controlam `mostrarDialogSaida` no estado. |
 | `limparErroLancarApp()` | Zera `erroLancarApp` após o Snackbar ser exibido. |
@@ -497,14 +533,56 @@ sealed class Rota(val caminho: String) {
 ### `MenuAutoApp.kt`
 - `@HiltAndroidApp` — gera o componente raiz do Hilt.
 - Implementa `Configuration.Provider` para integrar `HiltWorkerFactory` com WorkManager.
+- `override fun onCreate()` — inicializa `AppUpdateChecker.init()` com `UpdateConfig` apontando para `hugocoliveira/MenuAutomatico` no branch `main_MenuAutomatico`. Token lido de `BuildConfig.GITHUB_TOKEN` (definido em `local.properties`, não commitado).
 
 ### `MainActivity.kt`
 - `@AndroidEntryPoint` — habilita injeção.
 - `@Inject lateinit var menuRepository: MenuRepository`.
+- `solicitarPermissaoNotificacao()` — solicita `POST_NOTIFICATIONS` no Android 13+ via `ActivityResultContracts.RequestPermission()`. Sem essa permissão, notificações OTA são silenciadas pelo sistema.
 - `enableEdgeToEdge()` — usa toda a tela, incluindo área das barras de status/navegação.
 - Decide rota inicial em `produceState` (suspende para `isBancoVazio()` + `verificarConectividade()`).
 - Enquanto a rota não foi resolvida: exibe `CircularProgressIndicator` central.
 - `verificarConectividade()` privada — usa `ConnectivityManager.getNetworkCapabilities` (compatível com API 24+).
+
+---
+
+## 11a. Módulo `updater-lib` — sistema OTA
+
+Módulo Android library reutilizado pelos 3 apps. Verifica periodicamente no GitHub se há versão nova disponível e notifica o usuário.
+
+### `UpdateConfig.kt`
+```kotlin
+data class UpdateConfig(
+    val githubOwner: String,
+    val githubRepo: String,
+    val branch: String = "main",
+    val githubToken: String? = null,
+    val checkIntervalHours: Long = 6,
+    val packageId: String? = null   // null = usa packageName do próprio app
+)
+```
+- `versionJsonUrl`: com token → GitHub API (`/repos/.../contents/version.json`); sem token → raw URL (`raw.githubusercontent.com`).
+- `packageId`: usado por `AppUpdateChecker.checkForUpdate(config, context)` para ler a versão instalada de um **outro** app (necessário na verificação centralizada do login).
+
+### `AppUpdateChecker.kt`
+Singleton (`object`).
+
+| Método | Descrição |
+|---|---|
+| `init(context, config)` | Inicializa o singleton e registra `PeriodicWorkRequest<UpdateCheckWorker>` com `KEEP` (a cada `checkIntervalHours`). |
+| `checkForUpdate(): UpdateInfo?` | Verifica o próprio app (usa `config` inicializado). |
+| `checkForUpdate(config, context): UpdateInfo?` | Verifica **qualquer** app com config explícita. Usado pelo `LoginViewModel` para checar os 3 apps. Compara `versionCode` do `version.json` remoto com o instalado via `PackageManager`. Se app não estiver instalado, retorna versionCode=0 (sempre precisa atualizar). |
+
+### `version.json` (raiz de cada repositório)
+```json
+{
+  "versionCode": 2,
+  "versionName": "1.1",
+  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.1/app-release.apk",
+  "releaseNotes": "Descrição da versão"
+}
+```
+**Para publicar uma nova versão**, consulte `docs/COMO_PUBLICAR_ATUALIZACAO.md`.
 
 ---
 
@@ -540,9 +618,10 @@ Para trocar o ícone do app, ver seção 14.
 ### Cenário A — primeiro login (online)
 ```
 1. Operador abre o app.
-2. MainActivity → produceState: bancoVazio=true → rota=Login.
-3. Operador digita user/senha → Botão "Entrar".
-4. LoginViewModel.login()
+2. MainActivity → solicita POST_NOTIFICATIONS (Android 13+).
+3. MainActivity → produceState: bancoVazio=true → rota=Login.
+4. Operador digita user/senha → Botão "Entrar".
+5. LoginViewModel.login()
    ├─ uiState = Carregando
    └─ menuRepository.sincronizarDoServidor(user, pass)
        ├─ Authorization header montado.
@@ -553,12 +632,16 @@ Para trocar o ícone do app, ver seção 14.
        └─ SyncLogDao.inserir(SUCCESS, count, null)
    ├─ menuRepository.salvarCredenciais(user, pass)  [EncryptedSharedPrefs]
    ├─ agendarSyncPeriodico() → WorkManager
-   └─ uiState = Sucesso
-5. LoginScreen.LaunchedEffect detecta Sucesso → onLoginSucesso().
-6. NavGraph navega para "menu" e remove "login" do back stack.
-7. MenuViewModel.init → carregarMenu("MAIN").
-8. MenuRepository.getItensPorMenu("MAIN") → Flow do Room emite a lista.
-9. MenuScreen renderiza LazyColumn com MenuItemCards.
+   └─ verificarAtualizacoesDeTodosApps()
+       ├─ uiState = VerificandoAtualizacoes
+       ├─ async: checkForUpdate(MenuAutomatico) + checkForUpdate(EF) + checkForUpdate(ET)
+       ├─ sem updates → uiState = Sucesso
+       └─ com updates → uiState = AtualizacaoObrigatoria(lista)
+6. Se Sucesso: LoginScreen.LaunchedEffect → onLoginSucesso().
+7. NavGraph navega para "menu" e remove "login" do back stack.
+8. MenuViewModel.init → carregarMenu("MAIN").
+9. MenuRepository.getItensPorMenu("MAIN") → Flow do Room emite a lista.
+10. MenuScreen renderiza LazyColumn com MenuItemCards.
 ```
 
 ### Cenário B — primeiro acesso sem rede
@@ -605,37 +688,24 @@ Para trocar o ícone do app, ver seção 14.
 
 ## 14. Como fazer (FAQ de manutenção)
 
-### 14.1. Como mudo o ícone/imagem da tela de login (ícone do "armazém")?
+### 14.1. Como mudo a logo da tela de login?
 
-A imagem central da tela de login é um **vector do Material Icons**: `Icons.Default.Warehouse`.
+A logo atual é o arquivo `app/src/main/res/drawable/lit.png`, exibida com 180dp.
 
-**Arquivo**: `ui/login/LoginScreen.kt`, linhas ~128–133.
+**Arquivo**: `ui/login/LoginScreen.kt`.
 
 ```kotlin
-Icon(
-    imageVector = Icons.Default.Warehouse,   // ← TROCAR AQUI
-    contentDescription = "Ícone do aplicativo",
-    tint = Primary,
-    modifier = Modifier.size(72.dp)          // tamanho
+Image(
+    painter = painterResource(id = R.drawable.lit),   // ← trocar R.drawable.xxx
+    contentDescription = "Logo LIT Solutions",
+    modifier = Modifier.size(180.dp)                   // ← ajustar tamanho
 )
 ```
 
-**Opção 1 — outro ícone do Material**: troque para qualquer outro de `Icons.Default.*`, `Icons.Outlined.*`, etc. Lista completa em [fonts.google.com/icons](https://fonts.google.com/icons). Exemplos comuns:
-- `Icons.Default.Inventory2`
-- `Icons.Default.LocalShipping`
-- `Icons.Outlined.QrCodeScanner`
-
-**Opção 2 — logo customizada (PNG/SVG)**:
-1. Coloque a imagem em `app/src/main/res/drawable/logo_app.png` (ou `.xml` se for vector).
-2. Substitua o `Icon` por:
-   ```kotlin
-   Image(
-       painter = painterResource(R.drawable.logo_app),
-       contentDescription = "Logo LIT",
-       modifier = Modifier.size(96.dp)
-   )
-   ```
-3. Adicione o import `androidx.compose.foundation.Image` e `androidx.compose.ui.res.painterResource`.
+Para trocar:
+1. Coloque o novo arquivo PNG em `app/src/main/res/drawable/` com nome em **letras minúsculas** (ex: `logo_empresa.png`).
+2. Troque `R.drawable.lit` por `R.drawable.logo_empresa`.
+3. Ajuste `Modifier.size(...)` conforme necessário.
 
 ### 14.2. Como mudo o ícone do app (que aparece no launcher do Android)?
 
@@ -724,13 +794,37 @@ Não há tela de logs ainda, mas o `SyncLogDao.getLogs()` já existe. Os caminho
 - **Banco**: abrir `menu_automatico.db` com Database Inspector do Android Studio (View → Tool Windows → App Inspection → Database Inspector) e consultar `SELECT * FROM sync_log ORDER BY id DESC`.
 - **WorkManager Inspector** (mesma janela do Database Inspector): mostra tentativas e estados de `sync_menu_automatico`.
 
-### 14.10. Como migro para HTTPS quando o SAP suportar?
+### 14.10. Como publico uma atualização OTA?
+
+Consulte o guia completo em **`docs/COMO_PUBLICAR_ATUALIZACAO.md`**. Resumo dos 5 passos:
+
+1. Incrementar `versionCode` e atualizar `versionName` em `app/build.gradle.kts`.
+2. Gerar APK release assinado no Android Studio (**Build → Generate Signed APK**).
+3. Commit + push do `build.gradle.kts`.
+4. Criar GitHub Release com a tag `vX.Y` e subir o APK como asset.
+5. Editar o `version.json` no GitHub com o novo `versionCode`, `versionName` e `apkUrl`.
+
+### 14.11. Como altero o token GitHub do OTA?
+
+O token **não está no código-fonte**. Ele é lido do arquivo `local.properties` em tempo de build via `BuildConfig.GITHUB_TOKEN`.
+
+1. Abra `local.properties` na raiz do projeto.
+2. Altere a linha:
+   ```
+   github.token=ghp_NOVO_TOKEN_AQUI
+   ```
+3. Recompile — o novo token é embutido no APK automaticamente.
+4. Gere um novo token em `https://github.com/settings/tokens` (permissão: `repo → contents: read`).
+
+> ⚠️ Nunca commite `local.properties` — ele está no `.gitignore` por design.
+
+### 14.12. Como migro para HTTPS quando o SAP suportar?
 
 1. Atualize `BASE_URL` em `NetworkModule.kt` para `https://...`.
 2. Remova `android:usesCleartextTraffic="true"` do `AndroidManifest.xml`.
 3. Se o servidor usar certificado auto-assinado, configure um `OkHttpClient` com `TrustManager` customizado — **mas** prefira convencer a infra a usar um certificado válido.
 
-### 14.11. Como faço logout / forçar relogin?
+### 14.14. Como faço logout / forçar relogin?
 
 Hoje não há logout explícito. Para implementar:
 1. Adicione `fun limparCredenciais()` em `MenuRepository`:
@@ -800,7 +894,7 @@ Hoje não há logout explícito. Para implementar:
 | Cor primária | `ui/theme/Color.kt` |
 | Tipografia | `ui/theme/Type.kt` |
 | URL do SAP | `di/NetworkModule.kt` (`BASE_URL`) |
-| Ícone da tela de login | `ui/login/LoginScreen.kt` (Icon `Warehouse`) |
+| Logo da tela de login | `app/src/main/res/drawable/lit.png` + `ui/login/LoginScreen.kt` |
 | Ícone do app no launcher | `res/drawable/ic_launcher_*.xml` |
 | Strings da UI | `res/values/strings.xml` |
 | Período do sync background | `ui/login/LoginViewModel.kt` (`agendarSyncPeriodico`) |
@@ -811,7 +905,11 @@ Hoje não há logout explícito. Para implementar:
 | Esquema da resposta OData | `data/remote/ODataResponse.kt` |
 | Onde os dados vão pra UI | `MenuRepository.getItensPorMenu` |
 | Onde o app externo é lançado | `MenuViewModel.lancarAppExterno` |
+| Token GitHub do OTA | `local.properties` → `github.token` |
+| Configuração dos 3 apps no OTA | `LoginViewModel.verificarAtualizacoesDeTodosApps` |
+| Publicar nova versão | `docs/COMO_PUBLICAR_ATUALIZACAO.md` |
+| version.json do MenuAutomatico | raiz do projeto (`version.json`) |
 
 ---
 
-*Última atualização: 2026-05-07.*
+*Última atualização: 2026-05-18.*
