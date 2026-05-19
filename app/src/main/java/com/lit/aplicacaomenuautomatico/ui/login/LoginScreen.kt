@@ -25,7 +25,9 @@ import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SystemUpdate
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warehouse
+import androidx.compose.ui.res.painterResource
+import com.lit.aplicacaomenuautomatico.R
+import androidx.compose.foundation.Image
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -146,12 +148,11 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Ícone representando o contexto de armazém/logística
-            Icon(
-                imageVector = Icons.Default.Warehouse,
-                contentDescription = "Ícone do aplicativo",
-                tint = Primary,
-                modifier = Modifier.size(72.dp)
+            // Logo da empresa
+            Image(
+                painter = painterResource(id = R.drawable.lit),
+                contentDescription = "Logo LIT Solutions",
+                modifier = Modifier.size(120.dp)
             )
 
             Spacer(modifier = Modifier.height(12.dp))
