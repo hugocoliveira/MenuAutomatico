@@ -5,18 +5,18 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Lê o token do GitHub de local.properties (não commitado no git)
+val localProps = java.util.Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) load(f.inputStream())
+}
+
 android {
     namespace = "com.lit.aplicacaomenuautomatico"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
         }
-    }
-
-    // Lê o token do GitHub de local.properties (não commitado no git)
-    val localProps = java.util.Properties().apply {
-        val f = rootProject.file("local.properties")
-        if (f.exists()) load(f.inputStream())
     }
 
     defaultConfig {
