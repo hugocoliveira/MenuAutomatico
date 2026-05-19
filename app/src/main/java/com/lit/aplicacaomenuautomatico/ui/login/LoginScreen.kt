@@ -131,7 +131,7 @@ fun LoginScreen(
             )
     ) {
         Text(
-            text = "LIT Solutions",
+            text = "LIT Solutions  •  v${com.lit.aplicacaomenuautomatico.BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp),
             color = OnSurfaceVariant,
             modifier = Modifier
