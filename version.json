@@ -1,6 +1,6 @@
 {
-  "versionCode": 1,
-  "versionName": "1.0",
-  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.0/app-release.apk",
-  "releaseNotes": "Versão inicial"
+  "versionCode": 2,
+  "versionName": "1.1",
+  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.1/app-release.apk",
+  "releaseNotes": "Verificação de atualizações obrigatória na tela de login"
 }
