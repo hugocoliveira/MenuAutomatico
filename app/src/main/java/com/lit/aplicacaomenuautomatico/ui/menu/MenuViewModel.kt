@@ -20,8 +20,10 @@ import javax.inject.Inject
  * Contém todos os dados necessários para renderizar a UI sem lógica no Composable.
  */
 data class MenuUiState(
-    /** Nome do grupo de menu sendo exibido atualmente (ex.: "MAIN", "INB00") */
-    val tituloAtual: String = "MAIN",
+    /** Código interno do grupo de menu atual (ex.: "MAIN", "INB00") — usado para carregar dados */
+    val menuAtual: String = "MAIN",
+    /** Título de exibição na TopAppBar — SText do item pai que levou a este nível */
+    val tituloAtual: String = "Menu Principal",
     /** Lista de itens do menu atual — vazia durante carregamento */
     val itens: List<MenuApp> = emptyList(),
     /** True enquanto os dados estão sendo carregados do banco */
@@ -50,23 +52,24 @@ class MenuViewModel @Inject constructor(
     val uiState: StateFlow<MenuUiState> = _uiState.asStateFlow()
 
     /**
-     * Pilha de menus visitados — permite voltar ao menu pai sem nova consulta ao SAP.
+     * Pilha de menus visitados — cada entrada guarda o par (mmenu, título) para restaurar
+     * tanto o conteúdo quanto o título correto ao pressionar Voltar.
      * Começa vazia pois o MAIN é o ponto de entrada e não tem pai.
-     * Exemplo após navegar MAIN → INB00 → GR00: ["MAIN", "INB00"]
+     * Exemplo após navegar MAIN → INB00 → GR00: [("MAIN","Menu Principal"), ("INB00","Inbound")]
      *
      * Usar ArrayDeque (não mutableListOf) porque removeLast() é método concreto do
      * ArrayDeque do Kotlin e funciona em qualquer API Android. Em Kotlin 2.x,
      * mutableListOf().removeLast() é compilado como chamada de interface em
      * java.util.List, que só existe a partir do Java 21 / Android API 35.
      */
-    private val backStackMenus = ArrayDeque<String>()
+    private val backStack = ArrayDeque<Pair<String, String>>()
 
     /** Job da coleta do Flow atual — cancelado ao navegar para outro menu */
     private var jobColeta: Job? = null
 
     init {
         // Carrega o menu raiz MAIN ao inicializar o ViewModel
-        carregarMenu("MAIN")
+        carregarMenu("MAIN", "Menu Principal")
     }
 
     /**
@@ -74,12 +77,13 @@ class MenuViewModel @Inject constructor(
      * Cancela qualquer coleta anterior antes de iniciar a nova para evitar vazamento de recursos.
      *
      * @param mmenu Código do grupo de menu a carregar (ex.: "MAIN", "INB00")
+     * @param titulo Título de exibição na TopAppBar — SText do item pai ou "Menu Principal" para o MAIN
      */
-    fun carregarMenu(mmenu: String) {
+    fun carregarMenu(mmenu: String, titulo: String = "Menu Principal") {
         // Cancela o Flow anterior para não acumular coletas em background
         jobColeta?.cancel()
 
-        _uiState.update { it.copy(carregando = true, tituloAtual = mmenu) }
+        _uiState.update { it.copy(carregando = true, menuAtual = mmenu, tituloAtual = titulo) }
 
         jobColeta = viewModelScope.launch {
             menuRepository.getItensPorMenu(mmenu).collect { itens ->
@@ -96,10 +100,10 @@ class MenuViewModel @Inject constructor(
      * @param item Item de menu com type="1" que foi tocado pelo usuário
      */
     fun navegarParaSubmenu(item: MenuApp) {
-        // Empilha o menu atual antes de navegar para o filho
-        backStackMenus.add(_uiState.value.tituloAtual)
-        // O submenu filho é identificado pelo campo Transacao do item pai
-        carregarMenu(item.transacao)
+        // Empilha o menu atual (código + título) antes de navegar para o filho
+        backStack.add(_uiState.value.menuAtual to _uiState.value.tituloAtual)
+        // O submenu filho é identificado pelo Transacao do item pai; o SText vira o título
+        carregarMenu(item.transacao, item.sText)
     }
 
     /**
@@ -141,13 +145,13 @@ class MenuViewModel @Inject constructor(
      *         false se já estava no MAIN (sem pai — deve mostrar diálogo de saída)
      */
     fun voltarMenuAnterior(): Boolean {
-        if (backStackMenus.isEmpty()) {
+        if (backStack.isEmpty()) {
             // Já está no menu raiz — não há para onde voltar dentro dos menus
             return false
         }
-        // Desempilha o menu anterior e o carrega
-        val menuAnterior = backStackMenus.removeLast()
-        carregarMenu(menuAnterior)
+        // Desempilha o menu anterior e restaura código + título
+        val (mmenuAnterior, tituloAnterior) = backStack.removeLast()
+        carregarMenu(mmenuAnterior, tituloAnterior)
         return true
     }
 

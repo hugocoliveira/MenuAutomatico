@@ -119,7 +119,7 @@ fun MenuScreen(viewModel: MenuViewModel) {
                 },
                 // Botão Voltar visível em todos os níveis exceto no MAIN (raiz)
                 navigationIcon = {
-                    if (uiState.tituloAtual != "MAIN") {
+                    if (uiState.menuAtual != "MAIN") {
                         IconButton(
                             onClick = {
                                 val voltou = viewModel.voltarMenuAnterior()
@@ -170,9 +170,9 @@ fun MenuScreen(viewModel: MenuViewModel) {
                 )
             } else {
                 // AnimatedContent anima a transição entre menus com slide horizontal
-                // A key é o título do menu — muda ao navegar para outro nível
+                // A key é o código do menu — único por nível, muda ao navegar
                 AnimatedContent(
-                    targetState = uiState.tituloAtual,
+                    targetState = uiState.menuAtual,
                     transitionSpec = {
                         // Avançando: slide da direita para a esquerda
                         // Voltando: slide da esquerda para a direita (controlado pelo back stack)
