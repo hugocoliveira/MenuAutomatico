@@ -1,7 +1,10 @@
 package com.lit.aplicacaomenuautomatico.ui.login
 
+import android.content.BroadcastReceiver
 import android.content.Intent
+import android.content.IntentFilter
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -20,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SystemUpdate
@@ -101,9 +105,32 @@ fun LoginScreen(
         }
     }
 
-    // Diálogo de atualização obrigatória — bloqueia acesso ao menu
+    // Diálogo de atualização/instalação obrigatória — bloqueia acesso ao menu
     if (uiState is LoginUiState.AtualizacaoObrigatoria) {
         val atualizacoes = (uiState as LoginUiState.AtualizacaoObrigatoria).atualizacoes
+
+        // Monitora instalações de pacotes enquanto o diálogo estiver visível.
+        // Ao detectar que um dos apps pendentes foi instalado/atualizado, dispara
+        // re-verificação no ViewModel — se tudo estiver ok, o estado muda para Sucesso
+        // e a navegação ao menu ocorre automaticamente.
+        DisposableEffect(Unit) {
+            val receiver = object : BroadcastReceiver() {
+                override fun onReceive(ctx: android.content.Context, intent: Intent) {
+                    val packageInstalado = intent.data?.schemeSpecificPart ?: return
+                    if (atualizacoes.any { it.packageId == packageInstalado }) {
+                        viewModel.reVerificarAposInstalacao()
+                    }
+                }
+            }
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                addDataScheme("package")
+            }
+            context.registerReceiver(receiver, filter)
+            onDispose { context.unregisterReceiver(receiver) }
+        }
+
         DialogAtualizacaoObrigatoria(
             atualizacoes = atualizacoes,
             onAtualizarClick = {
@@ -113,6 +140,9 @@ fun LoginScreen(
                         putExtra("apk_url", resultado.updateInfo.apkUrl)
                         putExtra("version_name", resultado.updateInfo.versionName)
                         putExtra("version_code", resultado.updateInfo.versionCode)
+                        // Informa o nome do app para que o receiver gere um arquivo
+                        // com nome único e exiba a notificação com o app correto.
+                        putExtra("app_name", resultado.nomeApp)
                     }
                     context.sendBroadcast(intent)
                 }
@@ -320,11 +350,16 @@ fun LoginScreen(
 }
 
 /**
- * Diálogo obrigatório exibido quando um ou mais apps têm atualização disponível.
- * Não possui botão de cancelar — o usuário deve instalar antes de acessar o menu.
+ * Diálogo obrigatório exibido quando um ou mais apps precisam ser instalados ou atualizados.
+ * Não possui botão de cancelar — o operador deve resolver todas as pendências antes de
+ * acessar o menu.
  *
- * @param atualizacoes Lista de apps com atualização pendente
- * @param onAtualizarClick Callback acionado ao pressionar "Atualizar" — inicia os downloads
+ * Diferencia visualmente dois casos:
+ *  - App instalado com atualização disponível → ícone SystemUpdate
+ *  - App não instalado → ícone Download com texto "Não instalado"
+ *
+ * @param atualizacoes Lista de apps com pendências (atualização ou instalação)
+ * @param onAtualizarClick Callback acionado ao pressionar o botão — inicia todos os downloads
  */
 @Composable
 private fun DialogAtualizacaoObrigatoria(
@@ -333,8 +368,25 @@ private fun DialogAtualizacaoObrigatoria(
 ) {
     var downloadIniciado by remember { mutableStateOf(false) }
 
+    // Define título e subtítulo conforme o tipo de pendência
+    val temNaoInstalado = atualizacoes.any { !it.estaInstalado }
+    val temAtualizacao  = atualizacoes.any {  it.estaInstalado }
+    val titulo = when {
+        temNaoInstalado && temAtualizacao -> "Apps pendentes"
+        temNaoInstalado                  -> "Instalação necessária"
+        else                             -> "Atualização obrigatória"
+    }
+    val subtitulo = when {
+        temNaoInstalado && temAtualizacao ->
+            "Os aplicativos abaixo precisam ser instalados ou atualizados antes de continuar:"
+        temNaoInstalado ->
+            "Os aplicativos abaixo não estão instalados. Baixe-os para continuar:"
+        else ->
+            "Os aplicativos abaixo precisam ser atualizados antes de continuar:"
+    }
+
     AlertDialog(
-        onDismissRequest = { /* não permite fechar — atualização obrigatória */ },
+        onDismissRequest = { /* não permite fechar — ação obrigatória */ },
         icon = {
             Icon(
                 imageVector = Icons.Default.SystemUpdate,
@@ -345,7 +397,7 @@ private fun DialogAtualizacaoObrigatoria(
         },
         title = {
             Text(
-                text = "Atualização obrigatória",
+                text = titulo,
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = Primary
@@ -354,7 +406,7 @@ private fun DialogAtualizacaoObrigatoria(
         text = {
             Column {
                 Text(
-                    text = "Os aplicativos abaixo precisam ser atualizados antes de continuar:",
+                    text = subtitulo,
                     style = MaterialTheme.typography.bodyMedium,
                     color = OnSurface
                 )
@@ -368,8 +420,12 @@ private fun DialogAtualizacaoObrigatoria(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
+                        // Ícone diferente conforme o app está ou não instalado
                         Icon(
-                            imageVector = Icons.Default.SystemUpdate,
+                            imageVector = if (resultado.estaInstalado)
+                                Icons.Default.SystemUpdate
+                            else
+                                Icons.Default.Download,
                             contentDescription = null,
                             tint = Primary,
                             modifier = Modifier.size(20.dp)
@@ -383,7 +439,10 @@ private fun DialogAtualizacaoObrigatoria(
                                 color = OnSurface
                             )
                             Text(
-                                text = "Versão ${resultado.updateInfo.versionName} disponível",
+                                text = if (resultado.estaInstalado)
+                                    "Atualização ${resultado.updateInfo.versionName} disponível"
+                                else
+                                    "Não instalado — versão ${resultado.updateInfo.versionName} disponível",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = OnSurfaceVariant
                             )
@@ -415,7 +474,7 @@ private fun DialogAtualizacaoObrigatoria(
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Text(
-                    text = if (downloadIniciado) "Aguardando instalação..." else "Atualizar",
+                    text = if (downloadIniciado) "Aguardando instalação..." else "Baixar e instalar",
                     color = androidx.compose.ui.graphics.Color.White
                 )
             }

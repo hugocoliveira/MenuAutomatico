@@ -24,7 +24,10 @@ class ApkDownloadReceiver : BroadcastReceiver() {
             "com.updater.lib.DOWNLOAD_APK" -> {
                 val apkUrl = intent.getStringExtra("apk_url") ?: return
                 val versionName = intent.getStringExtra("version_name") ?: "update"
-                downloadAndInstall(context, apkUrl, versionName)
+                // app_name permite nomear o arquivo e a notificação com o app correto.
+                // Sem esse extra, todos os downloads usariam o nome do app em execução.
+                val appName = intent.getStringExtra("app_name")
+                downloadAndInstall(context, apkUrl, versionName, appName)
             }
 
             "com.updater.lib.DISMISS_UPDATE" -> {
@@ -40,14 +43,29 @@ class ApkDownloadReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun downloadAndInstall(context: Context, apkUrl: String, versionName: String) {
-        val appName = getAppName(context)
+    /**
+     * Inicia o download e instalação de um APK.
+     *
+     * @param context Contexto da aplicação
+     * @param apkUrl URL do APK a baixar
+     * @param versionName Versão do APK (usada no nome do arquivo)
+     * @param appNameOverride Nome do app a exibir na notificação e usar no arquivo.
+     *   Quando null, usa o nome do app em execução (comportamento original para auto-update).
+     *   Deve ser informado ao baixar APKs de outros apps para evitar conflito de nomes de arquivo.
+     */
+    private fun downloadAndInstall(
+        context: Context,
+        apkUrl: String,
+        versionName: String,
+        appNameOverride: String? = null
+    ) {
+        val appName = appNameOverride ?: getAppName(context)
         val fileName = "${appName.replace(" ", "_")}_v${versionName}.apk"
 
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
         val request = DownloadManager.Request(Uri.parse(apkUrl)).apply {
-            setTitle("Atualizando $appName")
+            setTitle("Instalando $appName")
             setDescription("Baixando versão $versionName...")
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
             setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)

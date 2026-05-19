@@ -1,6 +1,7 @@
 package com.lit.aplicacaomenuautomatico.ui.login
 
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.work.Constraints
@@ -27,13 +28,17 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
- * Resultado de verificação de atualização para um app específico.
+ * Resultado de verificação de status de um app externo.
  *
  * @param nomeApp Nome amigável exibido no diálogo (ex.: "Entrada Fornecimento")
- * @param updateInfo Informações da versão disponível no GitHub
+ * @param packageId Package ID do app (ex.: "com.entrada.fornecimento")
+ * @param estaInstalado true = app instalado mas desatualizado | false = app não instalado
+ * @param updateInfo Informações da versão disponível no GitHub (download ou atualização)
  */
 data class AppUpdateResult(
     val nomeApp: String,
+    val packageId: String,
+    val estaInstalado: Boolean,
     val updateInfo: UpdateInfo
 )
 
@@ -120,56 +125,116 @@ class LoginViewModel @Inject constructor(
     }
 
     /**
-     * Verifica em paralelo se há atualizações disponíveis para os 3 apps.
-     * Se encontrar alguma, emite [LoginUiState.AtualizacaoObrigatoria].
-     * Se tudo estiver atualizado, emite [LoginUiState.Sucesso] para navegar ao menu.
+     * Verifica em paralelo o status de todos os apps relevantes:
+     *  - O próprio Menu Automático (sempre verificado)
+     *  - Apps externos cujos package IDs estão na tabela aplicativos (populada durante o sync)
+     *
+     * Para cada app:
+     *  - Se instalado → verifica se há atualização disponível no OTA
+     *  - Se não instalado → verifica se o APK está disponível para download no OTA
+     *
+     * Se houver qualquer pendência (atualização ou instalação), emite
+     * [LoginUiState.AtualizacaoObrigatoria] para bloquear o acesso ao menu.
+     * Caso tudo esteja em ordem, emite [LoginUiState.Sucesso].
      */
     private suspend fun verificarAtualizacoesDeTodosApps() {
         _uiState.value = LoginUiState.VerificandoAtualizacoes
 
         val token = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() }
 
-        // Configuração de cada app — packageId permite checar a versão instalada no dispositivo
-        val appsParaVerificar = listOf(
-            "Menu Automático" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo = "MenuAutomatico",
-                branch = "main_MenuAutomatico",
-                githubToken = token,
-                packageId = "com.lit.aplicacaomenuautomatico"
-            ),
-            "Entrada Fornecimento" to UpdateConfig(
+        // Config do próprio app — sempre verificada independente do OData
+        val configProprioApp = UpdateConfig(
+            githubOwner = "hugocoliveira",
+            githubRepo = "MenuAutomatico",
+            branch = "main_MenuAutomatico",
+            githubToken = token,
+            packageId = "com.lit.aplicacaomenuautomatico"
+        )
+
+        // Mapeamento estático: packageId → (nome amigável, config OTA)
+        // Contém todos os apps externos que possuem distribuição via GitHub OTA
+        val otaExternos = mapOf(
+            "com.entrada.fornecimento" to ("Entrada Fornecimento" to UpdateConfig(
                 githubOwner = "hugocoliveira",
                 githubRepo = "EntradaFornecimento",
                 branch = "main",
                 githubToken = token,
                 packageId = "com.entrada.fornecimento"
-            ),
-            "Entrada Transporte" to UpdateConfig(
+            )),
+            "com.entrada.transporte" to ("Entrada Transporte" to UpdateConfig(
                 githubOwner = "hugocoliveira",
                 githubRepo = "EntradaTransporte",
                 branch = "master",
                 githubToken = token,
                 packageId = "com.entrada.transporte"
-            )
+            ))
         )
 
+        // Busca da tabela aplicativos os package IDs extraídos do OData durante o sync
+        val aplicativos = menuRepository.getAplicativos()
+
+        // Monta a lista de verificações: próprio app + externos com config OTA conhecida
+        // Apps externos sem config OTA (desconhecidos) são ignorados — não é possível checar
+        val verificacoes = mutableListOf(
+            Triple("Menu Automático", "com.lit.aplicacaomenuautomatico", configProprioApp)
+        )
+        aplicativos.forEach { packageId ->
+            otaExternos[packageId]?.let { (nome, config) ->
+                verificacoes.add(Triple(nome, packageId, config))
+            }
+        }
+
         // Verificações em paralelo para reduzir o tempo de espera
-        val atualizacoes = appsParaVerificar
-            .map { (nome, config) ->
+        val pendencias = verificacoes
+            .map { (nome, packageId, config) ->
                 viewModelScope.async(Dispatchers.IO) {
-                    AppUpdateChecker.checkForUpdate(config, context)?.let { info ->
-                        AppUpdateResult(nome, info)
+                    val instalado = estaInstalado(packageId)
+                    // checkForUpdate retorna UpdateInfo tanto para "atualizar" quanto para
+                    // "instalar" — se não instalado, versionCode local = 0 < remoto
+                    AppUpdateChecker.checkForUpdate(config, context)?.let { updateInfo ->
+                        AppUpdateResult(
+                            nomeApp = nome,
+                            packageId = packageId,
+                            estaInstalado = instalado,
+                            updateInfo = updateInfo
+                        )
                     }
                 }
             }
             .awaitAll()
             .filterNotNull()
 
-        _uiState.value = if (atualizacoes.isEmpty()) {
+        _uiState.value = if (pendencias.isEmpty()) {
             LoginUiState.Sucesso
         } else {
-            LoginUiState.AtualizacaoObrigatoria(atualizacoes)
+            LoginUiState.AtualizacaoObrigatoria(pendencias)
+        }
+    }
+
+    /**
+     * Verifica se um app está instalado no dispositivo usando o PackageManager.
+     *
+     * @param packageId Package ID do app a verificar (ex.: "com.entrada.fornecimento")
+     * @return true se instalado, false se não encontrado
+     */
+    private fun estaInstalado(packageId: String): Boolean {
+        return try {
+            context.packageManager.getPackageInfo(packageId, 0)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
+
+    /**
+     * Re-executa a verificação de status de todos os apps após uma instalação detectada.
+     * Chamado pela UI quando recebe broadcast de pacote instalado/atualizado.
+     * Se todos os apps estiverem em ordem, emite [LoginUiState.Sucesso] e navega ao menu.
+     * Se ainda houver pendências, emite [LoginUiState.AtualizacaoObrigatoria] com a lista atualizada.
+     */
+    fun reVerificarAposInstalacao() {
+        viewModelScope.launch(Dispatchers.IO) {
+            verificarAtualizacoesDeTodosApps()
         }
     }
 

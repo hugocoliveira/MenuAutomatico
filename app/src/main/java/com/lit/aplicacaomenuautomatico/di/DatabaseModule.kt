@@ -3,6 +3,7 @@ package com.lit.aplicacaomenuautomatico.di
 import android.content.Context
 import androidx.room.Room
 import com.lit.aplicacaomenuautomatico.data.local.AppDatabase
+import com.lit.aplicacaomenuautomatico.data.local.AplicativoDao
 import com.lit.aplicacaomenuautomatico.data.local.MenuAppDao
 import com.lit.aplicacaomenuautomatico.data.local.SyncLogDao
 import dagger.Module
@@ -55,4 +56,13 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideSyncLogDao(db: AppDatabase): SyncLogDao = db.syncLogDao()
+
+    /**
+     * Provê o DAO de aplicativos externos a partir da instância do banco.
+     *
+     * @param db Instância singleton do AppDatabase
+     */
+    @Provides
+    @Singleton
+    fun provideAplicativoDao(db: AppDatabase): AplicativoDao = db.aplicativoDao()
 }

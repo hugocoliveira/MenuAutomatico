@@ -2,6 +2,8 @@ package com.lit.aplicacaomenuautomatico.data.repository
 
 import android.content.SharedPreferences
 import android.util.Base64
+import com.lit.aplicacaomenuautomatico.data.local.AplicativoDao
+import com.lit.aplicacaomenuautomatico.data.local.AplicativoEntity
 import com.lit.aplicacaomenuautomatico.data.local.MenuAppDao
 import com.lit.aplicacaomenuautomatico.data.local.MenuAppEntity
 import com.lit.aplicacaomenuautomatico.data.local.SyncLogDao
@@ -32,6 +34,7 @@ private const val PREF_PASSWORD = "password"
 class MenuRepository @Inject constructor(
     private val menuAppDao: MenuAppDao,
     private val syncLogDao: SyncLogDao,
+    private val aplicativoDao: AplicativoDao,
     private val odataService: ODataService,
     /** EncryptedSharedPreferences — injetado pelo NetworkModule para armazenamento seguro */
     private val securePrefs: SharedPreferences
@@ -67,6 +70,17 @@ class MenuRepository @Inject constructor(
             menuAppDao.deletarTodos()
             menuAppDao.inserirTodos(entidades)
 
+            // Extrai package IDs únicos dos itens Type="2" para a tabela aplicativos.
+            // Itens Type="1" são submenus — o campo Componente não representa um app instalável.
+            val componentes = dtos
+                .filter { it.type == "2" && it.componente.isNotBlank() }
+                .map { it.componente }
+                .distinct()
+                .map { AplicativoEntity(componente = it) }
+
+            aplicativoDao.deletarTodos()
+            aplicativoDao.inserirTodos(componentes)
+
             // Grava log de sucesso com timestamp atual
             gravarLog(status = "SUCCESS", registros = entidades.size, erro = null)
 
@@ -97,6 +111,15 @@ class MenuRepository @Inject constructor(
      * @return true se não há nenhum item de menu no banco local
      */
     suspend fun isBancoVazio(): Boolean = menuAppDao.contarItens() == 0
+
+    /**
+     * Retorna os package IDs dos aplicativos externos extraídos do OData (Type="2").
+     * Usado pelo LoginViewModel para verificar instalação e atualizações após login.
+     *
+     * @return Lista de package IDs (ex.: ["com.entrada.fornecimento", "com.entrada.transporte"])
+     */
+    suspend fun getAplicativos(): List<String> =
+        aplicativoDao.getAll().map { it.componente }
 
     /**
      * Persiste as credenciais SAP de forma segura no EncryptedSharedPreferences.
