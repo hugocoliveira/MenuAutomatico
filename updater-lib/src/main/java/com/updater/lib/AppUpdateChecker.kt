@@ -41,6 +41,16 @@ object AppUpdateChecker {
             workRequest
         )
 
+        // Verifica imediatamente a cada abertura do app (sem esperar o ciclo periódico)
+        val immediateCheck = OneTimeWorkRequestBuilder<UpdateCheckWorker>()
+            .setConstraints(
+                Constraints.Builder()
+                    .setRequiredNetworkType(NetworkType.CONNECTED)
+                    .build()
+            )
+            .build()
+        WorkManager.getInstance(appContext).enqueue(immediateCheck)
+
         Log.d(TAG, "Verificação de atualização agendada a cada ${config.checkIntervalHours}h")
     }
 
