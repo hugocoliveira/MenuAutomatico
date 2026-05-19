@@ -137,6 +137,8 @@ class MenuViewModel @Inject constructor(
 
         // Passa o código da transação SAP como extra para o app externo processar
         intentLaunch.putExtra("transacao", item.transacao)
+        // Extra de segurança: sub-apps rejeitam abertura direta sem este extra
+        intentLaunch.putExtra("origem", "com.lit.aplicacaomenuautomatico")
         intentLaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         context.startActivity(intentLaunch)
     }
