@@ -111,36 +111,25 @@ class MenuViewModel @Inject constructor(
      * @param item Item de menu com type="2" que foi tocado pelo usuário
      */
     fun lancarAppExterno(context: Context, item: MenuApp) {
-        val pm = context.packageManager
-
-        // Tenta via getLaunchIntentForPackage (apps com ícone no launcher)
-        var intentLaunch = pm.getLaunchIntentForPackage(item.componente)
-
-        // Fallback: intent explícito para apps sem ícone no launcher (exported=true sem LAUNCHER)
-        if (intentLaunch == null) {
-            intentLaunch = pm.getLaunchIntentForPackage(item.componente)
-                ?: runCatching {
-                    val cn = android.content.ComponentName(item.componente, "${item.componente}.MainActivity")
-                    pm.getActivityInfo(cn, 0) // lança NameNotFoundException se não existir
-                    Intent().apply { component = cn }
-                }.getOrNull()
-        }
-
-        if (intentLaunch == null) {
-            _uiState.update {
-                it.copy(
-                    erroLancarApp = "Aplicativo '${item.componente}' não encontrado no dispositivo."
-                )
+        try {
+            val cn = android.content.ComponentName(
+                item.componente,
+                "${item.componente}.MainActivity"
+            )
+            val intent = Intent().apply {
+                component = cn
+                // Código da transação SAP para o app externo processar
+                putExtra("transacao", item.transacao)
+                // Extra de segurança: sub-apps fecham imediatamente sem este extra
+                putExtra("origem", "com.lit.aplicacaomenuautomatico")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            return
+            context.startActivity(intent)
+        } catch (e: android.content.ActivityNotFoundException) {
+            _uiState.update {
+                it.copy(erroLancarApp = "Aplicativo '${item.componente}' não encontrado no dispositivo.")
+            }
         }
-
-        // Passa o código da transação SAP como extra para o app externo processar
-        intentLaunch.putExtra("transacao", item.transacao)
-        // Extra de segurança: sub-apps rejeitam abertura direta sem este extra
-        intentLaunch.putExtra("origem", "com.lit.aplicacaomenuautomatico")
-        intentLaunch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(intentLaunch)
     }
 
     /**
