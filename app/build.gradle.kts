@@ -33,9 +33,19 @@ android {
         buildConfigField("String", "GITHUB_TOKEN", "\"${localProps.getProperty("github.token", "")}\"")
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(localProps.getProperty("keystore.path", ""))
+            storePassword = localProps.getProperty("keystore.password", "")
+            keyAlias = localProps.getProperty("key.alias", "")
+            keyPassword = localProps.getProperty("key.password", "")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
