@@ -169,7 +169,7 @@ fun LoginScreen(
             color = OnSurfaceVariant,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 56.dp)
+                .padding(bottom = 12.dp)
         )
 
         Column(
@@ -179,14 +179,14 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo da empresa
+            // Logo da empresa — tamanho reduzido para caber na tela do MC3300 (4")
             Image(
                 painter = painterResource(id = R.drawable.lit),
                 contentDescription = "Logo LIT Solutions",
-                modifier = Modifier.size(180.dp)
+                modifier = Modifier.size(90.dp)
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Título do app
             Text(
@@ -202,7 +202,7 @@ fun LoginScreen(
                 color = OnSurfaceVariant
             )
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Campo de usuário SAP
             OutlinedTextField(
@@ -237,7 +237,7 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Campo de senha com toggle de visibilidade
             OutlinedTextField(
@@ -289,7 +289,7 @@ fun LoginScreen(
                 )
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Mensagem de erro — visível apenas no estado Erro
             AnimatedVisibility(
@@ -307,7 +307,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Indicador de carregamento (autenticando ou verificando atualizações)
             if (uiState is LoginUiState.Carregando || uiState is LoginUiState.VerificandoAtualizacoes) {

@@ -40,12 +40,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lit.aplicacaomenuautomatico.ui.menu.components.ExitConfirmDialog
 import com.lit.aplicacaomenuautomatico.ui.menu.components.MenuItemCard
 import com.lit.aplicacaomenuautomatico.ui.theme.OnPrimary
-import com.lit.aplicacaomenuautomatico.ui.theme.OnSurfaceVariant
 import com.lit.aplicacaomenuautomatico.ui.theme.Primary
 
 /**
@@ -140,20 +138,6 @@ fun MenuScreen(viewModel: MenuViewModel) {
                 )
             )
         },
-        bottomBar = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp, bottom = 56.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "LIT Solutions",
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp),
-                    color = OnSurfaceVariant
-                )
-            }
-        },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
 
@@ -190,8 +174,8 @@ fun MenuScreen(viewModel: MenuViewModel) {
                     // LazyColumn para performance — não renderiza itens fora da tela
                     LazyColumn(
                         modifier = Modifier.fillMaxWidth(),
-                        contentPadding = PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         // key garante que o Compose não reutilize incorretamente itens ao animar
                         items(
