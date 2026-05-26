@@ -177,7 +177,7 @@ fun LoginScreen(
             color = Color.White.copy(alpha = 0.55f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 75.dp)
+                .padding(bottom = 16.dp)
         )
 
         Column(
@@ -187,8 +187,8 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Logo posicionada no topo — spacer inicial fixo + weight abaixo empurra o formulário para baixo
-            Spacer(modifier = Modifier.height(40.dp))
+            // Sem espaçador superior — conteúdo inicia do topo para subir tudo 1,5cm
+            Spacer(modifier = Modifier.height(0.dp))
 
             Image(
                 painter = painterResource(id = R.drawable.lit),
@@ -378,7 +378,7 @@ fun LoginScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(27.dp))
+            Spacer(modifier = Modifier.height(82.dp))
         }
     }
 }
