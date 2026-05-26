@@ -176,7 +176,7 @@ fun LoginScreen(
             color = Color.White.copy(alpha = 0.55f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 12.dp)
+                .padding(bottom = 75.dp)
         )
 
         Column(
@@ -184,13 +184,15 @@ fun LoginScreen(
                 .fillMaxSize()
                 .padding(horizontal = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top
         ) {
-            // Logo da empresa — tamanho reduzido para caber na tela do MC3300 (4")
+            // Logo posicionada no topo — spacer inicial fixo + weight abaixo empurra o formulário para baixo
+            Spacer(modifier = Modifier.height(40.dp))
+
             Image(
                 painter = painterResource(id = R.drawable.lit),
                 contentDescription = "Logo LIT Solutions",
-                modifier = Modifier.size(90.dp)
+                modifier = Modifier.size(108.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -208,6 +210,9 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.7f)
             )
+
+            // Espaço elástico: empurra o formulário para a metade inferior da tela
+            Spacer(modifier = Modifier.weight(1f))
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -366,6 +371,7 @@ fun LoginScreen(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(90.dp))
         }
     }
 }
