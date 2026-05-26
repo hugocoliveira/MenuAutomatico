@@ -376,7 +376,7 @@ fun LoginScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(208.dp))
+            Spacer(modifier = Modifier.height(334.dp))
         }
     }
 }
