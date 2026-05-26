@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.res.painterResource
 import com.lit.aplicacaomenuautomatico.R
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -51,8 +52,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import android.graphics.BitmapFactory
 import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -64,11 +68,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.lit.aplicacaomenuautomatico.ui.theme.OnSurface
-import com.lit.aplicacaomenuautomatico.ui.theme.OnSurfaceVariant
 import com.lit.aplicacaomenuautomatico.ui.theme.Primary
-import com.lit.aplicacaomenuautomatico.ui.theme.PrimaryContainer
-import com.lit.aplicacaomenuautomatico.ui.theme.Surface
 
 /**
  * Tela de login do aplicativo.
@@ -97,6 +97,11 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+
+    // Carrega o bitmap do fundo via AssetManager (evita processamento AAPT2 de PNG complexo)
+    val fundoBitmap = remember {
+        BitmapFactory.decodeStream(context.assets.open("fundo.png"))
+    }
 
     LaunchedEffect(uiState) {
         if (uiState is LoginUiState.Sucesso) {
@@ -151,22 +156,24 @@ fun LoginScreen(
         )
     }
 
-    // Fundo com gradiente suave de Surface até PrimaryContainer para identidade visual
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(Surface, PrimaryContainer),
-                    startY = 0f,
-                    endY = Float.POSITIVE_INFINITY
-                )
-            )
-    ) {
+    // Fundo: imagem fundo.png cobrindo a tela inteira + overlay escuro para legibilidade
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = BitmapPainter(fundoBitmap.asImageBitmap()),
+            contentDescription = null,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        // Camada escura semi-transparente para garantir contraste dos elementos sobre a imagem
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0x55000020))
+        )
         Text(
             text = "LIT Solutions  •  v${com.lit.aplicacaomenuautomatico.BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp),
-            color = OnSurfaceVariant,
+            color = Color.White.copy(alpha = 0.55f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 12.dp)
@@ -193,13 +200,13 @@ fun LoginScreen(
                 text = "Menu Automático",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Primary
+                color = Color.White
             )
 
             Text(
                 text = "SAP Warehouse Management",
                 style = MaterialTheme.typography.bodySmall,
-                color = OnSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -216,7 +223,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Usuário",
-                        tint = Primary
+                        tint = Color(0xFF00E5FF)
                     )
                 },
                 keyboardOptions = KeyboardOptions(
@@ -231,9 +238,15 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Primary,
-                    focusedLabelColor = Primary,
-                    cursorColor = Primary
+                    focusedBorderColor = Color(0xFF00E5FF),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                    focusedLabelColor = Color(0xFF00E5FF),
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF00E5FF),
+                    focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
                 )
             )
 
@@ -251,7 +264,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Senha",
-                        tint = Primary
+                        tint = Color(0xFF00E5FF)
                     )
                 },
                 trailingIcon = {
@@ -261,7 +274,7 @@ fun LoginScreen(
                             imageVector = if (senhaVisivel) Icons.Default.Visibility
                                           else Icons.Default.VisibilityOff,
                             contentDescription = if (senhaVisivel) "Ocultar senha" else "Mostrar senha",
-                            tint = OnSurfaceVariant
+                            tint = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 },
@@ -283,9 +296,15 @@ fun LoginScreen(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Primary,
-                    focusedLabelColor = Primary,
-                    cursorColor = Primary
+                    focusedBorderColor = Color(0xFF00E5FF),
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                    focusedLabelColor = Color(0xFF00E5FF),
+                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    cursorColor = Color(0xFF00E5FF),
+                    focusedContainerColor = Color.White.copy(alpha = 0.08f),
+                    unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
                 )
             )
 
@@ -312,7 +331,7 @@ fun LoginScreen(
             // Indicador de carregamento (autenticando ou verificando atualizações)
             if (uiState is LoginUiState.Carregando || uiState is LoginUiState.VerificandoAtualizacoes) {
                 CircularProgressIndicator(
-                    color = Primary,
+                    color = Color(0xFF00E5FF),
                     modifier = Modifier.size(48.dp)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -322,7 +341,7 @@ fun LoginScreen(
                     else
                         "Autenticando...",
                     style = MaterialTheme.typography.bodySmall,
-                    color = OnSurfaceVariant
+                    color = Color.White.copy(alpha = 0.8f)
                 )
             } else {
                 Button(
@@ -335,14 +354,15 @@ fun LoginScreen(
                         .height(52.dp),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Primary,
-                        contentColor = OnSurface.copy(alpha = 0f).copy(alpha = 1f)
+                        containerColor = Color(0xFF00B8D9),
+                        contentColor = Color.White
                     )
                 ) {
                     Text(
                         text = "Entrar",
                         style = MaterialTheme.typography.titleMedium,
-                        color = androidx.compose.ui.graphics.Color.White
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
                     )
                 }
             }
@@ -409,7 +429,7 @@ private fun DialogAtualizacaoObrigatoria(
                 Text(
                     text = subtitulo,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = OnSurface
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -437,7 +457,7 @@ private fun DialogAtualizacaoObrigatoria(
                                 text = resultado.nomeApp,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
-                                color = OnSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = if (resultado.estaInstalado)
@@ -445,7 +465,7 @@ private fun DialogAtualizacaoObrigatoria(
                                 else
                                     "Não instalado — versão ${resultado.updateInfo.versionName} disponível",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = OnSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
