@@ -193,7 +193,7 @@ fun LoginScreen(
             Image(
                 painter = painterResource(id = R.drawable.lit),
                 contentDescription = "Logo LIT Solutions",
-                modifier = Modifier.size(108.dp)
+                modifier = Modifier.size(234.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -378,7 +378,7 @@ fun LoginScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(90.dp))
+            Spacer(modifier = Modifier.height(27.dp))
         }
     }
 }
