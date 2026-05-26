@@ -34,6 +34,7 @@ import com.lit.aplicacaomenuautomatico.R
 import androidx.compose.foundation.Image
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.material3.AlertDialog
+import androidx.compose.foundation.border
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -199,7 +200,7 @@ fun LoginScreen(
 
             // Título do app
             Text(
-                text = "Menu Automático",
+                text = "LIT Mobile RF",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
@@ -228,7 +229,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Person,
                         contentDescription = "Usuário",
-                        tint = Color(0xFF00E5FF)
+                        tint = Color.White
                     )
                 },
                 keyboardOptions = KeyboardOptions(
@@ -269,7 +270,7 @@ fun LoginScreen(
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = "Senha",
-                        tint = Color(0xFF00E5FF)
+                        tint = Color.White
                     )
                 },
                 trailingIcon = {
@@ -356,12 +357,18 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp),
+                        .height(52.dp)
+                        .border(
+                            width = 1.5.dp,
+                            color = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        ),
                     shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF00B8D9),
+                        containerColor = Color.Transparent,
                         contentColor = Color.White
-                    )
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp)
                 ) {
                     Text(
                         text = "Entrar",
