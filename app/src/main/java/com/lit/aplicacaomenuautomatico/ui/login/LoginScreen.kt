@@ -89,8 +89,9 @@ fun LoginScreen(
     // Coleta o estado reativo do ViewModel respeitando o ciclo de vida
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var usuario by remember { mutableStateOf("") }
-    var senha by remember { mutableStateOf("") }
+    // TODO: remover valores padrão antes do deploy em produção
+    var usuario by remember { mutableStateOf("ANDROID_API") }
+    var senha by remember { mutableStateOf("Lit@2026") }
     var senhaVisivel by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
