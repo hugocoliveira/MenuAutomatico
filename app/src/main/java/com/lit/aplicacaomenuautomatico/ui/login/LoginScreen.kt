@@ -66,9 +66,12 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.LocalInspectionMode
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.lit.aplicacaomenuautomatico.ui.theme.AplicacaoMenuAutomaticoTheme
 import com.lit.aplicacaomenuautomatico.ui.theme.Primary
 
 /**
@@ -99,8 +102,9 @@ fun LoginScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
 
-    // Carrega o bitmap do fundo via AssetManager (evita processamento AAPT2 de PNG complexo)
-    val fundoBitmap = remember {
+    // Em preview o AssetManager não tem acesso aos assets — carrega apenas em runtime
+    val isPreview = LocalInspectionMode.current
+    val fundoBitmap = if (isPreview) null else remember {
         BitmapFactory.decodeStream(context.assets.open("fundo.png"))
     }
 
@@ -159,17 +163,19 @@ fun LoginScreen(
 
     // Fundo: imagem fundo.png cobrindo a tela inteira + overlay escuro para legibilidade
     Box(modifier = Modifier.fillMaxSize()) {
-        Image(
-            painter = BitmapPainter(fundoBitmap.asImageBitmap()),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-        // Camada escura semi-transparente para garantir contraste dos elementos sobre a imagem
+        if (fundoBitmap != null) {
+            Image(
+                painter = BitmapPainter(fundoBitmap.asImageBitmap()),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+        // Camada escura semi-transparente (fallback azul escuro em preview)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0x55000020))
+                .background(if (fundoBitmap != null) Color(0x55000020) else Color(0xFF0A1060))
         )
         Text(
             text = "LIT Solutions  •  v${com.lit.aplicacaomenuautomatico.BuildConfig.VERSION_NAME}",
@@ -213,7 +219,7 @@ fun LoginScreen(
                 color = Color.White.copy(alpha = 0.7f)
             )
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             // Campo de usuário SAP
             OutlinedTextField(
@@ -507,9 +513,116 @@ private fun DialogAtualizacaoObrigatoria(
             ) {
                 Text(
                     text = if (downloadIniciado) "Aguardando instalação..." else "Baixar e instalar",
-                    color = androidx.compose.ui.graphics.Color.White
+                    color = Color.White
                 )
             }
         }
     )
+}
+
+/**
+ * Preview da tela de login — usa fundo azul escuro como substituto da imagem
+ * (assets não estão disponíveis no ambiente de preview do Android Studio).
+ * Dimensões baseadas no coletor Zebra MC3300 (480×800dp).
+ */
+@Preview(name = "Login — MC3300", showBackground = true, widthDp = 480, heightDp = 800)
+@Composable
+private fun LoginScreenPreview() {
+    AplicacaoMenuAutomaticoTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF0A1060))
+        ) {
+            Text(
+                text = "LIT Solutions  •  v1.18",
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 13.sp),
+                color = Color.White.copy(alpha = 0.55f),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 60.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Top
+            ) {
+                Spacer(modifier = Modifier.height(0.dp))
+                Image(
+                    painter = painterResource(id = R.drawable.lit),
+                    contentDescription = null,
+                    modifier = Modifier.size(234.dp)
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "LIT Mobile RF",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                Text(
+                    text = "SAP Warehouse Management",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = "ANDROID_API",
+                    onValueChange = {},
+                    label = { Text("Usuário SAP") },
+                    leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.White) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                        unfocusedTextColor = Color.White,
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+                    )
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                OutlinedTextField(
+                    value = "••••••••",
+                    onValueChange = {},
+                    label = { Text("Senha") },
+                    leadingIcon = { Icon(Icons.Default.Lock, null, tint = Color.White) },
+                    trailingIcon = { Icon(Icons.Default.VisibilityOff, null, tint = Color.White.copy(alpha = 0.7f)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f),
+                        unfocusedTextColor = Color.White,
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.08f),
+                    )
+                )
+                Spacer(modifier = Modifier.height(14.dp))
+                Button(
+                    onClick = {},
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                        .border(1.5.dp, Color.White, RoundedCornerShape(12.dp)),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = Color.White
+                    ),
+                    elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp)
+                ) {
+                    Text(
+                        text = "Entrar",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+                Spacer(modifier = Modifier.height(334.dp))
+            }
+        }
+    }
 }
