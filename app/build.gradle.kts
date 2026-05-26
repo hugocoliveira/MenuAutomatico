@@ -25,8 +25,8 @@ android {
         applicationId = "com.lit.aplicacaomenuautomatico"
         minSdk = 24
         targetSdk = 36
-        versionCode = 19
-        versionName = "1.19"
+        versionCode = 20
+        versionName = "1.20"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
