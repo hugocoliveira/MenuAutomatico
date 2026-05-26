@@ -196,9 +196,10 @@ fun LoginScreen(
                 modifier = Modifier.size(234.dp)
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            // Espaço elástico: logo fica no topo, bloco de título+formulário fica abaixo
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Título do app
+            // Título e subtítulo agrupados com o formulário para moverem juntos
             Text(
                 text = "LIT Mobile RF",
                 style = MaterialTheme.typography.headlineMedium,
@@ -211,9 +212,6 @@ fun LoginScreen(
                 style = MaterialTheme.typography.bodySmall,
                 color = Color.White.copy(alpha = 0.7f)
             )
-
-            // Espaço elástico: empurra o formulário para a metade inferior da tela
-            Spacer(modifier = Modifier.weight(1f))
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -378,7 +376,7 @@ fun LoginScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(82.dp))
+            Spacer(modifier = Modifier.height(208.dp))
         }
     }
 }
