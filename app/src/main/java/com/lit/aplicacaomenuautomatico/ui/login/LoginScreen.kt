@@ -177,7 +177,7 @@ fun LoginScreen(
             color = Color.White.copy(alpha = 0.55f),
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 16.dp)
+                .padding(bottom = 60.dp)
         )
 
         Column(
