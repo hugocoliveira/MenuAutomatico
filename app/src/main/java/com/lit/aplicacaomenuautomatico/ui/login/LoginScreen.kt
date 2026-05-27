@@ -253,13 +253,13 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .offset(y = (-80).dp)                  // sobe a coluna 80dp (equivale a ~3cm em 160dpi)
+                .offset(y = (-80).dp)                  // sobe a coluna 80dp (~2cm)
                 .padding(horizontal = 32.dp),           // margem lateral de 32dp em cada lado
             horizontalAlignment = Alignment.CenterHorizontally, // centraliza todos os filhos horizontalmente
             verticalArrangement = Arrangement.Top              // alinha ao topo (Spacer.weight distribui o resto)
         ) {
-            // Espaçador fixo de 28dp — empurra a logo ~1cm para baixo do topo da tela
-            Spacer(modifier = Modifier.height(28.dp))
+            // Espaçador para descer apenas a logo 1,1cm (0,5cm anterior + 0,6cm solicitado)
+            Spacer(modifier = Modifier.height(44.dp))
 
             // ─── LOGO ─────────────────────────────────────────────────────────
             // Carrega o drawable R.drawable.lit (arquivo lit.png/lit.xml em res/drawable).
@@ -685,7 +685,8 @@ private fun LoginScreenPreview() {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                Spacer(modifier = Modifier.height(0.dp))
+                // Espaçador para descer apenas a logo 1,1cm (0,5cm anterior + 0,6cm solicitado)
+                Spacer(modifier = Modifier.height(44.dp))
 
                 // Logo — mesmo tamanho do runtime (234dp)
                 Image(

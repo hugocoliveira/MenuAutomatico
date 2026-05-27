@@ -1,8 +1,8 @@
 <resources>
-    <string name="app_name">Menu Automático</string>
+    <string name="app_name">LIT Mobile RF</string>
 
     <!-- Tela de Login -->
-    <string name="login_titulo">Menu Automático</string>
+    <string name="login_titulo">LIT Mobile RF</string>
     <string name="login_subtitulo">SAP Warehouse Management</string>
     <string name="login_campo_usuario">Usuário SAP</string>
     <string name="login_campo_senha">Senha</string>
