@@ -86,7 +86,7 @@ class MenuAutoApp : Application(), Configuration.Provider {
                 // periódicos, mas recomenda-se no mínimo 1 hora para não
                 // impactar bateria e consumo de dados.
                 // ─────────────────────────────────────────────────────────────
-                checkIntervalHours = 6L
+                checkIntervalHours = 1L
             )
         )
     }

@@ -40,8 +40,8 @@ android {
         applicationId = "com.lit.aplicacaomenuautomatico" // identificador único do app na Play Store e no dispositivo
         minSdk        = 24   // Android 7.0 (Nougat) — versão mínima dos coletores Zebra MC3300
         targetSdk     = 36   // API alvo — define o comportamento em dispositivos com Android 36
-        versionCode   = 36   // número inteiro incremental — usado pelo sistema para detectar atualização
-        versionName   = "1.36" // versão legível exibida na tela de login e nas notificações OTA
+        versionCode   = 37   // número inteiro incremental — usado pelo sistema para detectar atualização
+        versionName   = "1.37" // versão legível exibida na tela de login e nas notificações OTA
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner" // runner de testes instrumentados
 
