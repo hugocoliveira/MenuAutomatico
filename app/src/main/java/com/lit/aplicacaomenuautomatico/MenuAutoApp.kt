@@ -73,7 +73,20 @@ class MenuAutoApp : Application(), Configuration.Provider {
                 githubRepo  = "MenuAutomatico",
                 branch      = "main_MenuAutomatico",
                 // takeIf evita passar string vazia — sem token, usa request anônimo
-                githubToken = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() }
+                githubToken = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() },
+
+                // ─────────────────────────────────────────────────────────────
+                // FREQUÊNCIA DE VERIFICAÇÃO DE ATUALIZAÇÃO
+                // Altere o valor abaixo para mudar o intervalo (em horas):
+                //   1L  → verifica a cada 1 hora
+                //   2L  → verifica a cada 2 horas
+                //   6L  → verifica a cada 6 horas (padrão atual)
+                //   24L → verifica uma vez por dia
+                // Atenção: o Android impõe mínimo de 15 minutos para Workers
+                // periódicos, mas recomenda-se no mínimo 1 hora para não
+                // impactar bateria e consumo de dados.
+                // ─────────────────────────────────────────────────────────────
+                checkIntervalHours = 6L
             )
         )
     }
