@@ -9,26 +9,16 @@
     <!-- Necessário no Android 11+ para que o launcher consiga ver e lançar apps externos -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
+    <!--
+        TROCA DE ÍCONE DO APP — altere android:icon e android:roundIcon abaixo:
+        OPÇÃO 1 - Coletor Zebra: android:icon="@mipmap/icone"       android:roundIcon="@mipmap/icone_round"
+        OPÇÃO 2 - Empilhadeira:  android:icon="@mipmap/icone_emp"   android:roundIcon="@mipmap/icone_emp_round"
+    -->
     <application
         android:name=".MenuAutoApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        <!-- ┌─────────────────────────────────────────────────────────────┐
-             │                   TROCA DE ÍCONE DO APP                    │
-             │                                                             │
-             │  Altere os dois valores abaixo para trocar o ícone:        │
-             │                                                             │
-             │  OPÇÃO 1 — Coletor Zebra com logo LIT:                     │
-             │    android:icon="@mipmap/icone"                            │
-             │    android:roundIcon="@mipmap/icone_round"                 │
-             │                                                             │
-             │  OPÇÃO 2 — Empilhadeira LIT (atual):                       │
-             │    android:icon="@mipmap/icone_emp"                        │
-             │    android:roundIcon="@mipmap/icone_emp_round"             │
-             │                                                             │
-             │  Após alterar: gerar release e publicar.                   │
-             └─────────────────────────────────────────────────────────────┘ -->
         android:icon="@mipmap/icone_emp"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/icone_emp_round"
