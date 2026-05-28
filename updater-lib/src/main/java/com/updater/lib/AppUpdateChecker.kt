@@ -26,7 +26,7 @@ object AppUpdateChecker {
         this.config = config
 
         val workRequest = PeriodicWorkRequestBuilder<UpdateCheckWorker>(
-            config.checkIntervalHours, TimeUnit.HOURS
+            config.checkIntervalMinutes, TimeUnit.MINUTES
         )
             .setConstraints(
                 Constraints.Builder()
@@ -44,7 +44,7 @@ object AppUpdateChecker {
             workRequest
         )
 
-        Log.d(TAG, "Verificação de atualização agendada a cada ${config.checkIntervalHours}h")
+        Log.d(TAG, "Verificação de atualização agendada a cada ${config.checkIntervalMinutes} minutos")
     }
 
     fun getConfig(): UpdateConfig = config

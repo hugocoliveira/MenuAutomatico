@@ -5,7 +5,8 @@ data class UpdateConfig(
     val githubRepo: String,
     val branch: String = "main",
     val githubToken: String? = null,
-    val checkIntervalHours: Long = 6,
+    // intervalo em minutos — mínimo 15 (limite imposto pelo Android WorkManager)
+    val checkIntervalMinutes: Long = 15,
     /** Package ID do app a verificar. Null = usa o packageName do próprio processo. */
     val packageId: String? = null
 ) {

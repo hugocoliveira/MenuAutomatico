@@ -77,16 +77,15 @@ class MenuAutoApp : Application(), Configuration.Provider {
 
                 // ─────────────────────────────────────────────────────────────
                 // FREQUÊNCIA DE VERIFICAÇÃO DE ATUALIZAÇÃO
-                // Altere o valor abaixo para mudar o intervalo (em horas):
-                //   1L  → verifica a cada 1 hora
-                //   2L  → verifica a cada 2 horas
-                //   6L  → verifica a cada 6 horas (padrão atual)
-                //   24L → verifica uma vez por dia
-                // Atenção: o Android impõe mínimo de 15 minutos para Workers
-                // periódicos, mas recomenda-se no mínimo 1 hora para não
-                // impactar bateria e consumo de dados.
+                // Altere o valor abaixo para mudar o intervalo (em minutos):
+                //   15L → verifica a cada 15 minutos (mínimo permitido pelo Android)
+                //   30L → verifica a cada 30 minutos
+                //   60L → verifica a cada 1 hora
+                //   360L → verifica a cada 6 horas
+                // Atenção: o Android impõe mínimo absoluto de 15 minutos para
+                // Workers periódicos — valores menores são ignorados pelo sistema.
                 // ─────────────────────────────────────────────────────────────
-                checkIntervalHours = 1L
+                checkIntervalMinutes = 15L
             )
         )
     }
