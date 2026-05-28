@@ -11,8 +11,9 @@
 
     <!--
         TROCA DE ÍCONE DO APP — altere android:icon e android:roundIcon abaixo:
-        OPÇÃO 1 - Coletor Zebra: android:icon="@mipmap/icone"       android:roundIcon="@mipmap/icone_round"
-        OPÇÃO 2 - Empilhadeira:  android:icon="@mipmap/icone_emp"   android:roundIcon="@mipmap/icone_emp_round"
+        OPÇÃO 1 - Coletor Zebra:        android:icon="@mipmap/icone"       android:roundIcon="@mipmap/icone_round"
+        OPÇÃO 2 - Empilhadeira LIT:     android:icon="@mipmap/icone_emp"   android:roundIcon="@mipmap/icone_emp_round"
+        OPÇÃO 3 - Empilhadeira MAt:     android:icon="@mipmap/icone_mat"   android:roundIcon="@mipmap/icone_mat_round"
     -->
     <application
         android:name=".MenuAutoApp"
