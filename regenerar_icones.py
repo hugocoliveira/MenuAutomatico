@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 import os
 
-ZOOM = 0.7
+ZOOM = 0.9
 SRC_IMAGE = r"C:\Users\hugo\Desktop\LIT icone MAt.png"
 
 densities = {
