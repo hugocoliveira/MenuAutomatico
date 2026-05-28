@@ -36,9 +36,11 @@ object AppUpdateChecker {
             .setInitialDelay(30, TimeUnit.SECONDS)
             .build()
 
+        // UPDATE garante que mudanças no intervalo (checkIntervalHours) sejam aplicadas imediatamente.
+        // KEEP ignoraria qualquer alteração de configuração enquanto o job já estivesse registrado.
         WorkManager.getInstance(appContext).enqueueUniquePeriodicWork(
             WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             workRequest
         )
 
