@@ -60,7 +60,13 @@ class ApkDownloadReceiver : BroadcastReceiver() {
         appNameOverride: String? = null
     ) {
         val appName = appNameOverride ?: getAppName(context)
-        val fileName = "${appName.replace(" ", "_")}_v${versionName}.apk"
+        // Remove acentos e caracteres especiais — DownloadManager falha com paths não-ASCII
+        val nomeSeguro = java.text.Normalizer
+            .normalize(appName, java.text.Normalizer.Form.NFD)
+            .replace(Regex("[^\\p{ASCII}]"), "")
+            .replace(" ", "_")
+            .replace(Regex("[^a-zA-Z0-9_\\-]"), "")
+        val fileName = "${nomeSeguro}_v${versionName}.apk"
 
         val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
