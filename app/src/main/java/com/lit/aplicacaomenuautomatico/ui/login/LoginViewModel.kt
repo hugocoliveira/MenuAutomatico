@@ -253,6 +253,21 @@ class LoginViewModel @Inject constructor(
                 branch      = "master",
                 githubToken = token,
                 packageId   = "com.entrada.transporte"
+            )),
+            // Novos apps adicionados em v1.49 — instalados automaticamente via OTA no primeiro login
+            "br.com.lit.busca.material" to ("Busca Material" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo  = "BuscaMaterial",
+                branch      = "main",
+                githubToken = token,
+                packageId   = "br.com.lit.busca.material"
+            )),
+            "br.com.lit.busca.posicao" to ("Busca Posição" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo  = "BuscaPosicao",
+                branch      = "main",
+                githubToken = token,
+                packageId   = "br.com.lit.busca.posicao"
             ))
         )
 
