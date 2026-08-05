@@ -105,7 +105,13 @@ class MenuAutoApp : Application(), Configuration.Provider {
                     branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.material")),
             Triple("Busca Posicao", "br.com.lit.busca.posicao",
                 UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "BuscaPosicao",
-                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.posicao"))
+                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.posicao")),
+            Triple("Busca Por Fila", "br.com.lit.busca.fila",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "BuscaPorFila",
+                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.fila")),
+            Triple("Busca Por UC", "br.com.lit.busca.uc",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "BuscaPorUC",
+                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.uc"))
         )
         appsExternos.forEach { (nome, packageId, config) ->
             AppUpdateChecker.registerExternalApp(nome, packageId, config)

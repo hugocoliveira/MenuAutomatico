@@ -268,6 +268,20 @@ class LoginViewModel @Inject constructor(
                 branch      = "main",
                 githubToken = token,
                 packageId   = "br.com.lit.busca.posicao"
+            )),
+            "br.com.lit.busca.fila" to ("Busca Por Fila" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo  = "BuscaPorFila",
+                branch      = "main",
+                githubToken = token,
+                packageId   = "br.com.lit.busca.fila"
+            )),
+            "br.com.lit.busca.uc" to ("Busca Por UC" to UpdateConfig(
+                githubOwner = "hugocoliveira",
+                githubRepo  = "BuscaPorUC",
+                branch      = "main",
+                githubToken = token,
+                packageId   = "br.com.lit.busca.uc"
             ))
         )
 
