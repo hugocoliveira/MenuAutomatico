@@ -292,24 +292,8 @@ class LoginViewModel @Inject constructor(
 
         // ─── MONTAGEM DA LISTA DE VERIFICAÇÕES ────────────────────────────────
         // Começa com o próprio app e adiciona os externos que têm config OTA conhecida.
-        // Apps verificados sempre, independente do que o SAP retornar:
-        // o próprio app e os que ainda não estão cadastrados no OData.
         val verificacoes = mutableListOf(
-            Triple("Menu Automático", "com.lit.aplicacaomenuautomatico", configProprioApp),
-            Triple("Busca Por Fila", "br.com.lit.busca.fila", UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaPorFila",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.fila"
-            )),
-            Triple("Busca Por UC", "br.com.lit.busca.uc", UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaPorUC",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.uc"
-            ))
+            Triple("Menu Automático", "com.lit.aplicacaomenuautomatico", configProprioApp)
         )
         aplicativos.forEach { packageId ->
             // let só executa se o packageId existir no mapa — apps sem OTA são ignorados
