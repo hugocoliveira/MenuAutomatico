@@ -73,13 +73,16 @@ class ApkDownloadReceiver : BroadcastReceiver() {
             File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), fileName)
                 .takeIf { it.exists() }?.delete()
 
+            Log.d(TAG, "Iniciando download: $apkUrl → $fileName")
+
             val request = DownloadManager.Request(Uri.parse(apkUrl)).apply {
                 setTitle("Instalando $appName")
                 setDescription("Baixando versão $versionName...")
                 setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
                 setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-                setMimeType("application/vnd.android.package-archive")
-                // Sem header de autenticação — repos públicos não precisam e o token quebra redirecionamentos CDN
+                // setMimeType omitido — GitHub CDN serve como application/octet-stream e alguns
+                // dispositivos rejeitam o download quando há incompatibilidade de MIME type.
+                // O MIME correto é definido no installIntent em installApk().
             }
 
             val downloadId = downloadManager.enqueue(request)
@@ -97,16 +100,39 @@ class ApkDownloadReceiver : BroadcastReceiver() {
                     // Verifica status real do download antes de instalar
                     val query = DownloadManager.Query().setFilterById(downloadId)
                     val cursor = downloadManager.query(query)
-                    val sucesso = cursor?.use { c ->
-                        c.moveToFirst() &&
-                        c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)) == DownloadManager.STATUS_SUCCESSFUL
-                    } ?: false
+
+                    var sucesso = false
+                    var motivoFalha = ""
+                    cursor?.use { c ->
+                        if (c.moveToFirst()) {
+                            val status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+                            sucesso = status == DownloadManager.STATUS_SUCCESSFUL
+                            if (!sucesso) {
+                                // COLUMN_REASON retorna HTTP code (ex: 404) ou constante interna (1000–1009)
+                                val reason = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON))
+                                motivoFalha = when {
+                                    reason in 400..599 -> "HTTP $reason"
+                                    reason == DownloadManager.ERROR_INSUFFICIENT_SPACE -> "Armazenamento insuficiente"
+                                    reason == DownloadManager.ERROR_FILE_ALREADY_EXISTS -> "Arquivo já existe"
+                                    reason == DownloadManager.ERROR_TOO_MANY_REDIRECTS -> "Muitos redirecionamentos"
+                                    reason == DownloadManager.ERROR_FILE_ERROR -> "Erro no armazenamento"
+                                    reason == DownloadManager.ERROR_UNHANDLED_HTTP_CODE -> "Código HTTP não suportado"
+                                    reason == DownloadManager.ERROR_CANNOT_RESUME -> "Não foi possível retomar"
+                                    else -> "Código $reason"
+                                }
+                            }
+                        }
+                    }
 
                     if (sucesso) {
                         installApk(ctx.applicationContext, fileName)
                     } else {
-                        Log.e(TAG, "Download falhou — $fileName")
-                        Toast.makeText(ctx.applicationContext, "Falha ao baixar $appName", Toast.LENGTH_LONG).show()
+                        Log.e(TAG, "Download falhou — $fileName — motivo: $motivoFalha")
+                        Toast.makeText(
+                            ctx.applicationContext,
+                            "Falha ao baixar $appName: $motivoFalha",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }

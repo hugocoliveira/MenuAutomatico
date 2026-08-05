@@ -66,14 +66,15 @@ class MenuAutoApp : Application(), Configuration.Provider {
         // Inicia o verificador periódico de atualizações do próprio app via GitHub Releases.
         // Compara o versionCode instalado com o versionCode em version.json no repositório.
         // Token opcional: sem ele, requests são anônimos (limite de 60/hora no GitHub API).
+        val githubToken = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() }
+
         AppUpdateChecker.init(
             context = this,
             config  = UpdateConfig(
                 githubOwner = "hugocoliveira",
                 githubRepo  = "MenuAutomatico",
                 branch      = "main_MenuAutomatico",
-                // takeIf evita passar string vazia — sem token, usa request anônimo
-                githubToken = BuildConfig.GITHUB_TOKEN.takeIf { it.isNotEmpty() },
+                githubToken = githubToken,
 
                 // ─────────────────────────────────────────────────────────────
                 // FREQUÊNCIA DE VERIFICAÇÃO DE ATUALIZAÇÃO
@@ -88,6 +89,27 @@ class MenuAutoApp : Application(), Configuration.Provider {
                 checkIntervalMinutes = 15L
             )
         )
+
+        // ─── REGISTRO DE APPS EXTERNOS PARA VERIFICAÇÃO EM BACKGROUND ────────
+        // O UpdateCheckWorker usa estes registros a cada ciclo periódico.
+        // Adicionar/remover um app aqui é suficiente — o worker pega automaticamente.
+        val appsExternos = listOf(
+            Triple("Entrada Fornecimento", "com.entrada.fornecimento",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "EntradaFornecimento",
+                    branch = "main", githubToken = githubToken, packageId = "com.entrada.fornecimento")),
+            Triple("Entrada Transporte", "com.entrada.transporte",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "EntradaTransporte",
+                    branch = "master", githubToken = githubToken, packageId = "com.entrada.transporte")),
+            Triple("Busca Material", "br.com.lit.busca.material",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "BuscaMaterial",
+                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.material")),
+            Triple("Busca Posicao", "br.com.lit.busca.posicao",
+                UpdateConfig(githubOwner = "hugocoliveira", githubRepo = "BuscaPosicao",
+                    branch = "main", githubToken = githubToken, packageId = "br.com.lit.busca.posicao"))
+        )
+        appsExternos.forEach { (nome, packageId, config) ->
+            AppUpdateChecker.registerExternalApp(nome, packageId, config)
+        }
     }
 
     // ─── CONFIGURAÇÃO DO WORKMANAGER ──────────────────────────────────────────

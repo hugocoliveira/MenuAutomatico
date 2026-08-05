@@ -21,6 +21,13 @@ object AppUpdateChecker {
     private lateinit var config: UpdateConfig
     private lateinit var appContext: Context
 
+    /**
+     * Apps externos com verificação OTA em background.
+     * Populada pelo módulo app via [registerExternalApp] no Application.onCreate().
+     * Triple: (nome legível, packageId, UpdateConfig)
+     */
+    private val externalApps = mutableListOf<Triple<String, String, UpdateConfig>>()
+
     fun init(context: Context, config: UpdateConfig) {
         this.appContext = context.applicationContext
         this.config = config
@@ -115,6 +122,30 @@ object AppUpdateChecker {
     }
 
     private fun fetchVersionJson(): JSONObject? = fetchVersionJsonFor(config)
+
+    /**
+     * Registra um app externo para verificação periódica em background.
+     * Deve ser chamado em Application.onCreate() antes que o [UpdateCheckWorker] dispare.
+     *
+     * @param name      Nome legível exibido na notificação (ex.: "Busca Material")
+     * @param packageId Package ID do app (ex.: "br.com.lit.busca.material")
+     * @param config    UpdateConfig apontando para o repositório OTA desse app
+     */
+    fun registerExternalApp(name: String, packageId: String, config: UpdateConfig) {
+        externalApps.removeAll { it.second == packageId } // evita duplicatas ao re-inicializar
+        externalApps.add(Triple(name, packageId, config))
+    }
+
+    /**
+     * Verifica todos os apps externos registrados via [registerExternalApp].
+     * Chamado pelo [UpdateCheckWorker] no ciclo periódico.
+     *
+     * @return Lista de triplas (nome, packageId, UpdateInfo) apenas dos apps com atualização disponível
+     */
+    fun checkAllExternalUpdates(): List<Triple<String, String, UpdateInfo>> =
+        externalApps.mapNotNull { (name, packageId, cfg) ->
+            checkForUpdate(cfg, appContext)?.let { Triple(name, packageId, it) }
+        }
 
     private fun fetchVersionJsonFor(cfg: UpdateConfig): JSONObject? {
         val url = URL(cfg.versionJsonUrl)
