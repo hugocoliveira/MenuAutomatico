@@ -262,7 +262,7 @@ class LoginViewModel @Inject constructor(
                 githubToken = token,
                 packageId   = "br.com.lit.busca.material"
             )),
-            "br.com.lit.busca.posicao" to ("Busca Posição" to UpdateConfig(
+            "br.com.lit.busca.posicao" to ("Busca Posicao" to UpdateConfig(
                 githubOwner = "hugocoliveira",
                 githubRepo  = "BuscaPosicao",
                 branch      = "main",
