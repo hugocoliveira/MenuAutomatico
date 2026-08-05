@@ -1,6 +1,6 @@
-{
-  "versionCode": 54,
-  "versionName": "1.54",
-  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.54/app-release.apk",
-  "releaseNotes": ""
+﻿{
+  "versionCode": 55,
+  "versionName": "1.55",
+  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.55/app-release.apk",
+  "releaseNotes": "Registra BuscaPorFila e BuscaPorUC no OTA."
 }
