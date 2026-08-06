@@ -1,6 +1,6 @@
 ﻿{
-  "versionCode": 56,
-  "versionName": "1.56",
-  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.56/app-release.apk",
-  "releaseNotes": "fix: remove download duplicado de BuscaPorFila e BuscaPorUC no OTA."
+  "versionCode": 57,
+  "versionName": "1.57",
+  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.57/app-release.apk",
+  "releaseNotes": "fix: remove download duplicado BuscaPorFila e BuscaPorUC no OTA."
 }

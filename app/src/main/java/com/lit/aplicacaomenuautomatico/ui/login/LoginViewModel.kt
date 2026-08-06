@@ -296,9 +296,11 @@ class LoginViewModel @Inject constructor(
             Triple("Menu Automático", "com.lit.aplicacaomenuautomatico", configProprioApp)
         )
         aplicativos.forEach { packageId ->
-            // let só executa se o packageId existir no mapa — apps sem OTA são ignorados
-            otaExternos[packageId]?.let { (nome, config) ->
-                verificacoes.add(Triple(nome, packageId, config))
+            // none() evita duplicatas caso o packageId já esteja em verificacoes
+            if (verificacoes.none { it.second == packageId }) {
+                otaExternos[packageId]?.let { (nome, config) ->
+                    verificacoes.add(Triple(nome, packageId, config))
+                }
             }
         }
 
