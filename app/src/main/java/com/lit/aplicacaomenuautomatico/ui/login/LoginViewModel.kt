@@ -236,73 +236,30 @@ class LoginViewModel @Inject constructor(
             packageId    = "com.lit.aplicacaomenuautomatico"
         )
 
-        // ─── MAPA DE APPS EXTERNOS COM OTA ───────────────────────────────────
-        // Mapeamento estático: packageId → (nome amigável, UpdateConfig).
-        // Só os apps aqui listados são verificados — apps sem OTA são ignorados.
-        val otaExternos = mapOf(
-            "com.entrada.fornecimento" to ("Entrada Fornecimento" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "EntradaFornecimento",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "com.entrada.fornecimento"
-            )),
-            "com.entrada.transporte" to ("Entrada Transporte" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "EntradaTransporte",
-                branch      = "master",
-                githubToken = token,
-                packageId   = "com.entrada.transporte"
-            )),
-            // Novos apps adicionados em v1.49 — instalados automaticamente via OTA no primeiro login
-            "br.com.lit.busca.material" to ("Busca Material" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaMaterial",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.material"
-            )),
-            "br.com.lit.busca.posicao" to ("Busca Posicao" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaPosicao",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.posicao"
-            )),
-            "br.com.lit.busca.fila" to ("Busca Por Fila" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaPorFila",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.fila"
-            )),
-            "br.com.lit.busca.uc" to ("Busca Por UC" to UpdateConfig(
-                githubOwner = "hugocoliveira",
-                githubRepo  = "BuscaPorUC",
-                branch      = "main",
-                githubToken = token,
-                packageId   = "br.com.lit.busca.uc"
-            ))
-        )
-
-        // ─── LISTA DE PACKAGE IDs DO ODATA ────────────────────────────────────
-        // Busca os package IDs extraídos do SAP durante o sync e gravados em SQLite.
-        // Apenas apps presentes no OData E no mapa otaExternos serão verificados.
-        val aplicativos = menuRepository.getAplicativos()
-
-        // ─── MONTAGEM DA LISTA DE VERIFICAÇÕES ────────────────────────────────
-        // Começa com o próprio app e adiciona os externos que têm config OTA conhecida.
+        // ─── LISTA FIXA DE VERIFICAÇÕES OTA ──────────────────────────────────
+        // Todos os apps são sempre verificados independente do que o SAP retornar.
+        // Elimina a dependência do campo Componente do OData para o OTA funcionar.
         val verificacoes = mutableListOf(
-            Triple("Menu Automático", "com.lit.aplicacaomenuautomatico", configProprioApp)
+            Triple("Menu Automático",     "com.lit.aplicacaomenuautomatico", configProprioApp),
+            Triple("Busca Material",      "br.com.lit.busca.material",  UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "BuscaMaterial",
+                branch = "main", githubToken = token, packageId = "br.com.lit.busca.material")),
+            Triple("Busca Posicao",       "br.com.lit.busca.posicao",   UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "BuscaPosicao",
+                branch = "main", githubToken = token, packageId = "br.com.lit.busca.posicao")),
+            Triple("Busca Por Fila",      "br.com.lit.busca.fila",      UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "BuscaPorFila",
+                branch = "main", githubToken = token, packageId = "br.com.lit.busca.fila")),
+            Triple("Busca Por UC",        "br.com.lit.busca.uc",        UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "BuscaPorUC",
+                branch = "main", githubToken = token, packageId = "br.com.lit.busca.uc")),
+            Triple("Entrada Fornecimento","com.entrada.fornecimento",   UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "EntradaFornecimento",
+                branch = "main", githubToken = token, packageId = "com.entrada.fornecimento")),
+            Triple("Entrada Transporte",  "com.entrada.transporte",     UpdateConfig(
+                githubOwner = "hugocoliveira", githubRepo = "EntradaTransporte",
+                branch = "master", githubToken = token, packageId = "com.entrada.transporte"))
         )
-        aplicativos.forEach { packageId ->
-            // none() evita duplicatas caso o packageId já esteja em verificacoes
-            if (verificacoes.none { it.second == packageId }) {
-                otaExternos[packageId]?.let { (nome, config) ->
-                    verificacoes.add(Triple(nome, packageId, config))
-                }
-            }
-        }
 
         // ─── VERIFICAÇÕES EM PARALELO ─────────────────────────────────────────
         // async lança cada verificação em paralelo no Dispatchers.IO.
