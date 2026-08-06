@@ -112,10 +112,38 @@ class MenuViewModel @Inject constructor(
     /** Job da coleta do Flow atual — cancelado ao navegar para evitar coletas acumuladas */
     private var jobColeta: Job? = null
 
+    // ─── MENU FIXO ───────────────────────────────────────────────────────────
+    // Estrutura de menus definida diretamente no app, ignorando o retorno do SAP.
+    // Para voltar ao menu dinâmico do SAP: restaurar o commit tagueado como
+    // v1.58-menu-sap-original e publicar nova versão.
+    private val menuFixo: Map<String, List<MenuApp>> = mapOf(
+        "MAIN" to listOf(
+            MenuApp(lgnum = "", mmenu = "MAIN", sequence = 1, componente = "", type = "1",
+                transacao = "CONSULTA", text = "Consulta estoque/posição", sText = "Consulta estoque/posição"),
+            MenuApp(lgnum = "", mmenu = "MAIN", sequence = 2, componente = "", type = "1",
+                transacao = "TAREFAS",  text = "Tarefa de Depósito",       sText = "Tarefa de Depósito")
+        ),
+        "CONSULTA" to listOf(
+            MenuApp(lgnum = "", mmenu = "CONSULTA", sequence = 1,
+                componente = "br.com.lit.busca.material", type = "2",
+                transacao = "CONSULTA_MAT", text = "Consulta Estoque", sText = "Consulta Estoque"),
+            MenuApp(lgnum = "", mmenu = "CONSULTA", sequence = 2,
+                componente = "br.com.lit.busca.posicao", type = "2",
+                transacao = "CONSULTA_POS", text = "Consulta Posição", sText = "Consulta Posição")
+        ),
+        "TAREFAS" to listOf(
+            MenuApp(lgnum = "", mmenu = "TAREFAS", sequence = 1,
+                componente = "br.com.lit.busca.fila", type = "2",
+                transacao = "TD_FILA", text = "TD por Fila", sText = "TD por Fila"),
+            MenuApp(lgnum = "", mmenu = "TAREFAS", sequence = 2,
+                componente = "br.com.lit.busca.uc", type = "2",
+                transacao = "TD_UC", text = "TD por UC", sText = "TD por UC")
+        )
+    )
+
     // ─── INICIALIZAÇÃO ────────────────────────────────────────────────────────
 
     init {
-        // Carrega o menu raiz MAIN ao criar o ViewModel (após login bem-sucedido)
         carregarMenu("MAIN", "Menu Principal")
     }
 
@@ -124,26 +152,17 @@ class MenuViewModel @Inject constructor(
     // ═════════════════════════════════════════════════════════════════════════
 
     /**
-     * Carrega os itens de um grupo de menu do SQLite via Flow reativo.
+     * Carrega os itens do [menuFixo] para o grupo solicitado.
+     * Grupos não mapeados resultam em lista vazia.
      *
-     * Cancela o Job da coleta anterior antes de iniciar a nova coleta —
-     * evita acumular múltiplos Flows coletando simultaneamente em background.
-     *
-     * @param mmenu  Código do grupo de menu a carregar (ex.: "MAIN", "INB00")
-     * @param titulo Título exibido na TopAppBar — SText do item pai ou "Menu Principal" para o MAIN
+     * @param mmenu  Código do grupo de menu (ex.: "MAIN", "CONSULTA", "TAREFAS")
+     * @param titulo Título exibido na TopAppBar
      */
     fun carregarMenu(mmenu: String, titulo: String = "Menu Principal") {
-        jobColeta?.cancel() // cancela a coleta do menu anterior para evitar vazamento
-
-        // Atualiza estado imediatamente: exibe loading e registra qual menu está ativo
-        _uiState.update { it.copy(carregando = true, menuAtual = mmenu, tituloAtual = titulo) }
-
-        // Inicia nova coleta — o Flow emite sempre que os dados do menu mudarem no SQLite
-        jobColeta = viewModelScope.launch {
-            menuRepository.getItensPorMenu(mmenu).collect { itens ->
-                // Cada emissão atualiza a lista e remove o indicador de carregamento
-                _uiState.update { it.copy(itens = itens, carregando = false) }
-            }
+        jobColeta?.cancel()
+        val itens = menuFixo[mmenu] ?: emptyList()
+        _uiState.update {
+            it.copy(carregando = false, menuAtual = mmenu, tituloAtual = titulo, itens = itens)
         }
     }
 

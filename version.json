@@ -1,1 +1,6 @@
-﻿{"versionCode":58,"versionName":"1.58","apkUrl":"https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.58/app-release.apk","releaseNotes":"perf: abiFilters arm64/arm32 em todos os apps."}
+﻿{
+  "versionCode": 59,
+  "versionName": "1.59",
+  "apkUrl": "https://github.com/hugocoliveira/MenuAutomatico/releases/download/v1.59/app-release.apk",
+  "releaseNotes": "feat: menu fixo no app — Consulta estoque/posicao e Tarefa de Deposito."
+}
