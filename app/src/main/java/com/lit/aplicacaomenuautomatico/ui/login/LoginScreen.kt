@@ -127,7 +127,7 @@ fun LoginScreen(
     // Estes três estados são locais à tela e não precisam sobreviver a rotações,
     // por isso ficam aqui em vez do ViewModel.
     // TODO: remover valores padrão antes do deploy em produção
-    var usuario      by remember { mutableStateOf("ANDROID_API") } // texto digitado no campo usuário
+    var usuario      by remember { mutableStateOf("LIT_SOLUTIONS") } // nome exibido — auth usa ANDROID_API
     var senha        by remember { mutableStateOf("Lit@2026") }    // texto digitado no campo senha
     var senhaVisivel by remember { mutableStateOf(false) }         // controla máscara de senha
 
@@ -383,7 +383,7 @@ fun LoginScreen(
                     // Ao pressionar "Done": fecha o teclado e inicia o login
                     onDone = {
                         focusManager.clearFocus()
-                        viewModel.login(usuario, senha)
+                        viewModel.login("ANDROID_API", senha)
                     }
                 ),
                 singleLine = true,
@@ -460,7 +460,7 @@ fun LoginScreen(
                 Button(
                     onClick = {
                         focusManager.clearFocus()          // fecha o teclado antes de submeter
-                        viewModel.login(usuario, senha)    // delega autenticação ao ViewModel
+                        viewModel.login("ANDROID_API", senha)    // delega autenticação ao ViewModel
                     },
                     modifier = Modifier
                         .fillMaxWidth()                    // botão ocupa toda a largura do formulário
@@ -715,7 +715,7 @@ private fun LoginScreenPreview() {
 
                 // Campo usuário (somente leitura em preview)
                 OutlinedTextField(
-                    value         = "ANDROID_API",
+                    value         = "LIT_SOLUTIONS",
                     onValueChange = {},
                     label         = { Text("Usuário SAP") },
                     leadingIcon   = { Icon(Icons.Default.Person, null, tint = Color.White) },
